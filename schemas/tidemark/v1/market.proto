@@ -44,6 +44,10 @@ message Trade {
   string ingest_id = 10;   // ingestor instance that produced it
   bool from_snapshot = 11; // replayed by the venue on subscribe (Kraken snapshot, Coinbase last_match), not live
   uint64 venue_sequence = 12; // added in the Week 2 schema-evolution drill: Coinbase feed sequence; 0 if none
+  // Synthetic only. Public feeds carry no trader identity; the injection
+  // framework assigns accounts so the wash-trade detector can be evaluated.
+  string buyer_account = 13;
+  string seller_account = 14;
 }
 
 message BookLevel {
@@ -95,4 +99,41 @@ message GapEvent {
   int64 detected_ts_ns = 9;
   int64 resolved_ts_ns = 10;
   string detail = 11;
+}
+
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_LOW = 1;
+  SEVERITY_MEDIUM = 2;
+  SEVERITY_HIGH = 3;
+}
+
+// One detector firing. Topic alerts.v1, key "venue:product_id".
+// alert_id is deterministic (detector, venue, product, window start), so a
+// replayed firing upserts instead of duplicating.
+message Alert {
+  string alert_id = 1;
+  string detector = 2;           // volume_spike | spoof_layering | dislocation | wash_trade
+  Venue venue = 3;               // VENUE_UNSPECIFIED for cross-venue alerts
+  string product_id = 4;
+  int64 event_ts_ns = 5;         // event time at which the detector fired
+  int64 window_start_ns = 6;     // evidence window: query trades/book in [start, end]
+  int64 window_end_ns = 7;
+  double score = 8;              // detector-specific (z-score, size multiple, ...)
+  double threshold = 9;          // threshold in force when it fired
+  Severity severity = 10;
+  string summary = 11;           // one human-readable line
+  map<string, string> evidence = 12;
+  int64 emitted_ts_ns = 13;      // processing time, for alert-latency SLOs
+}
+
+// Ground truth for one injected pattern. Topic labels.v1, key "venue:product_id".
+message InjectionLabel {
+  string injection_id = 1;
+  string pattern = 2;            // same vocabulary as Alert.detector
+  Venue venue = 3;
+  string product_id = 4;
+  int64 start_ts_ns = 5;
+  int64 end_ts_ns = 6;
+  map<string, string> params = 7;
 }

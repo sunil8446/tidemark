@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tidemark-ops
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/tidemark.git
+    targetRevision: main
+    path: infra/helm/tidemark-ops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tidemark
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

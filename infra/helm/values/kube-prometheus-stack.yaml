@@ -1,0 +1,12 @@
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    # Pick up ServiceMonitors/PodMonitors/PrometheusRules from every namespace.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+grafana:
+  sidecar:
+    dashboards: { enabled: true, searchNamespace: ALL }
+alertmanager:
+  enabled: true

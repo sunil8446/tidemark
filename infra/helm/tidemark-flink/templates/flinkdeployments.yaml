@@ -1,0 +1,76 @@
+{{- range $name, $job := .Values.jobs }}
+---
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: tidemark-{{ $name }}
+  labels:
+    app.kubernetes.io/part-of: tidemark
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+  flinkVersion: {{ $.Values.flinkVersion }}
+  serviceAccount: {{ $.Values.serviceAccount.name }}
+  flinkConfiguration:
+    taskmanager.numberOfTaskSlots: "2"
+    state.backend.type: rocksdb
+    state.backend.incremental: "true"
+    execution.checkpointing.dir: {{ $.Values.s3.checkpoints }}/{{ $name }}/checkpoints
+    execution.checkpointing.savepoint-dir: {{ $.Values.s3.checkpoints }}/{{ $name }}/savepoints
+    execution.checkpointing.interval: 60s
+    execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+    high-availability.type: kubernetes
+    high-availability.storageDir: {{ $.Values.s3.checkpoints }}/{{ $name }}/ha
+    restart-strategy.type: exponential-delay
+    classloader.parent-first-patterns.additional: org.postgresql
+    kubernetes.operator.periodic.savepoint.interval: 6h
+    metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    metrics.reporter.prom.port: "9249"
+    {{- if $.Values.s3.endpoint }}
+    s3.endpoint: {{ $.Values.s3.endpoint }}
+    s3.path.style.access: "true"
+    {{- end }}
+  jobManager:
+    resource: { memory: 1024m, cpu: 0.5 }
+  taskManager:
+    resource: { memory: {{ $job.taskManager.memory }}, cpu: {{ $job.taskManager.cpu }} }
+  podTemplate:
+    spec:
+      containers:
+        - name: flink-main-container
+          ports:
+            - { name: metrics, containerPort: 9249 }
+  job:
+    jarURI: local:///opt/flink/usrlib/tidemark-flink.jar
+    entryClass: {{ $job.entryClass }}
+    parallelism: {{ $job.parallelism }}
+    # Upgrades stop with a savepoint and restore from it (exactly-once across deploys).
+    upgradeMode: savepoint
+    args:
+      {{- range $.Values.common.args }}
+      - {{ . | quote }}
+      {{- end }}
+      {{- range $job.args }}
+      - {{ . | quote }}
+      {{- end }}
+{{- end }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.serviceAccount.name }}
+  {{- with .Values.serviceAccount.roleArn }}
+  annotations:
+    eks.amazonaws.com/role-arn: {{ . }}
+  {{- end }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: tidemark-flink
+spec:
+  selector:
+    matchExpressions:
+      - { key: type, operator: In, values: [flink-native-kubernetes] }
+  podMetricsEndpoints:
+    - { port: metrics, interval: 15s }

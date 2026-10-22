@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tidemark-ingest
+description: Coinbase + Kraken WebSocket ingestor with gap detection and REST backfill
+type: application
+version: 0.3.0
+appVersion: "0.3.0"

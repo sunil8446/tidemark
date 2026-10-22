@@ -77,6 +77,16 @@ public final class Lakehouse {
       Types.NestedField.optional(14, "kafka_partition", Types.IntegerType.get()),
       Types.NestedField.optional(15, "kafka_offset", Types.LongType.get()));
 
+  /** Top-of-book every 10 s of event time (see BookCheckpoints). */
+  public static final Schema BOOK_SNAPSHOTS = new Schema(
+      Types.NestedField.required(1, "venue", Types.StringType.get()),
+      Types.NestedField.required(2, "product_id", Types.StringType.get()),
+      Types.NestedField.required(3, "snapshot_ts", Types.TimestampType.withZone()),
+      Types.NestedField.required(4, "side", Types.StringType.get()),
+      Types.NestedField.required(5, "level", Types.IntegerType.get()),
+      Types.NestedField.optional(6, "price", Types.DecimalType.of(28, 12)),
+      Types.NestedField.optional(7, "qty", Types.DecimalType.of(28, 12)));
+
   public static final Schema GAP_EVENTS = new Schema(
       Types.NestedField.required(1, "gap_id", Types.StringType.get()),
       Types.NestedField.required(2, "venue", Types.StringType.get()),
@@ -98,8 +108,14 @@ public final class Lakehouse {
   }
 
   public static TableLoader ensureTable(CatalogLoader loader, String name, Schema schema, String tsColumn) {
+    return ensureTable(loader, NAMESPACE, name, schema, tsColumn);
+  }
+
+  /** As above, in a given namespace (e.g. market_inj for the evaluation stream). */
+  public static TableLoader ensureTable(CatalogLoader loader, String namespace, String name, Schema schema,
+      String tsColumn) {
     Catalog catalog = loader.loadCatalog();
-    Namespace ns = Namespace.of(NAMESPACE);
+    Namespace ns = Namespace.of(namespace);
     if (catalog instanceof SupportsNamespaces sn && !sn.namespaceExists(ns)) {
       try {
         sn.createNamespace(ns);

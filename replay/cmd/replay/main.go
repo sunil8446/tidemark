@@ -30,6 +30,7 @@ import (
 	"tidemark/ingest/venue"
 	"tidemark/ingest/venue/coinbase"
 	"tidemark/ingest/venue/kraken"
+	"tidemark/replay/inject"
 	"tidemark/replay/record"
 )
 
@@ -44,6 +45,11 @@ func main() {
 		dryRun      = flag.Bool("dry-run", false, "do not produce to Kafka")
 		topicSuffix = flag.String("topic-suffix", "", "suffix appended to topic names")
 		depth       = flag.Int("kraken-book-depth", 10, "must match the depth used when recording")
+		perPattern  = flag.Int("inject-per-pattern", 0, "inject this many labelled patterns of each kind (0 = off)")
+		injectSeed  = flag.Uint64("inject-seed", 42, "seed for the injection plan")
+		warmup      = flag.Duration("inject-warmup", 10*time.Minute, "no injections before this much stream time (detector baselines)")
+		injectGap   = flag.Duration("inject-gap", 90*time.Second, "minimum spacing between injections")
+		accounts    = flag.Int("accounts", 2000, "synthetic account pool size (wash-trade evaluation)")
 	)
 	flag.Parse()
 	files := flag.Args()
@@ -77,6 +83,23 @@ func main() {
 			os.Exit(1)
 		}
 		out = k
+	}
+	var injector *inject.Injector
+	if *perPattern > 0 {
+		if *dryRun {
+			slog.Error("--inject-per-pattern needs Kafka for labels; drop --dry-run")
+			os.Exit(2)
+		}
+		t0, t1, err := span(files)
+		if err != nil {
+			slog.Error("read", "err", err)
+			os.Exit(1)
+		}
+		plan := inject.Plan(*injectSeed, time.Unix(0, t0), time.Unix(0, t1), *warmup, *injectGap, *perPattern,
+			[]string{"BTC-USD", "ETH-USD", "SOL-USD"})
+		injector = inject.New(out, out.(*sink.Kafka), plan, *accounts)
+		out = injector
+		slog.Info("injection plan", "injections", len(plan), "from", time.Unix(0, t0).UTC(), "to", time.Unix(0, t1).UTC())
 	}
 	counted := &counter{Sink: out}
 
@@ -140,6 +163,9 @@ func main() {
 	out.Close()
 
 	n := counted.trades.Load() + counted.books.Load()
+	if injector != nil {
+		fmt.Printf("injected %v skipped=%d %v\n", injector.Fired, len(injector.Skipped), injector.Skipped)
+	}
 	fmt.Printf("replayed frames=%d trades=%d book_updates=%d gaps=%d elapsed=%s records_per_sec=%.0f\n",
 		frames.Load(), counted.trades.Load(), counted.books.Load(), counted.gaps.Load(),
 		elapsed.Round(time.Millisecond), float64(n)/elapsed.Seconds())
@@ -178,6 +204,33 @@ func play(ctx context.Context, path string, p *pipeline.Pipeline, t0 int64, star
 		p.HandleFrame(l.F, time.Now())
 		n++
 	}
+}
+
+// span returns the first and last frame times across files.
+func span(files []string) (int64, int64, error) {
+	var lo, hi int64
+	for _, f := range files {
+		r, err := record.Open(f)
+		if err != nil {
+			return 0, 0, err
+		}
+		for {
+			l, err := r.Next()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				r.Close()
+				return 0, 0, err
+			}
+			if lo == 0 || l.T < lo {
+				lo = l.T
+			}
+			hi = max(hi, l.T)
+		}
+		r.Close()
+	}
+	return lo, hi, nil
 }
 
 func earliest(files []string) (int64, error) {

@@ -1,0 +1,26 @@
+[project]
+name = "tidemark-mcp"
+version = "0.4.0"
+description = "Read-only MCP tools over Tidemark's ClickHouse and Iceberg (via Trino) for the alert investigator"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.12",
+    "clickhouse-connect>=0.8",
+    "trino>=0.335",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[project.scripts]
+tidemark-mcp = "tidemark_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tidemark_mcp"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

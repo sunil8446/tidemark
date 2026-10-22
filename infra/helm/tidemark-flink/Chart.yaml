@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tidemark-flink
+description: Tidemark Flink jobs as FlinkDeployment resources for the Flink Kubernetes Operator
+type: application
+version: 0.3.0
+appVersion: "0.3.0"

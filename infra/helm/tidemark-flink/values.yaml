@@ -1,0 +1,41 @@
+image:
+  repository: ghcr.io/REPLACE_ME/tidemark-flink
+  tag: "0.3.0"
+
+flinkVersion: v1_20
+
+# IRSA role from infra/terraform (module.roles.role_arns["flink"]).
+serviceAccount:
+  name: flink
+  roleArn: ""
+
+s3:
+  checkpoints: s3://REPLACE_ME-checkpoints
+  # On AWS, credentials come from IRSA; leave endpoint empty for real S3.
+  endpoint: ""
+
+common:
+  args:
+    - --brokers=redpanda.redpanda.svc.cluster.local:9093
+    - --registry=http://redpanda.redpanda.svc.cluster.local:8081
+    - --catalog.uri=jdbc:postgresql://tidemark-pg-rw.tidemark.svc.cluster.local:5432/iceberg_catalog
+    - --warehouse=s3://REPLACE_ME-lake/warehouse
+    - --clickhouse.url=http://clickhouse-tidemark.tidemark.svc.cluster.local:8123
+
+jobs:
+  lakehouse:
+    entryClass: dev.tidemark.flink.LakehouseJob
+    parallelism: 2
+    taskManager: { memory: 2048m, cpu: 1 }
+    args: []
+  analytics:
+    entryClass: dev.tidemark.flink.AnalyticsJob
+    parallelism: 2
+    taskManager: { memory: 2048m, cpu: 1 }
+    args: []
+  detectors:
+    entryClass: dev.tidemark.flink.DetectorsJob
+    parallelism: 2
+    taskManager: { memory: 2048m, cpu: 1 }
+    # Operating points chosen by bench/detector_eval.sh (docs/eval-report.md).
+    args: []

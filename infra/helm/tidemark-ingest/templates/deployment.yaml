@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "ingest.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # Exactly one ingestor at a time: a rolling update would briefly run two and
+  # produce every trade twice (Flink would dedup, but gap metrics would not).
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: {{- include "ingest.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "ingest.labels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: ingest
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --brokers={{ .Values.kafka.brokers }}
+            - --registry={{ .Values.kafka.schemaRegistry }}
+            - --coinbase={{ .Values.coinbase }}
+            - --kraken={{ .Values.kraken }}
+            - --kraken-book-depth={{ .Values.krakenBookDepth }}
+            - --ingest-id=$(POD_NAME)
+            - --record-dir={{ if .Values.recording.enabled }}/data/recordings{{ end }}
+            - --metrics-addr=:9102
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+          ports:
+            - { name: metrics, containerPort: 9102 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: metrics }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: metrics }
+            periodSeconds: 20
+            failureThreshold: 6
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          {{- if .Values.recording.enabled }}
+          volumeMounts:
+            - { name: data, mountPath: /data }
+          {{- end }}
+      {{- if .Values.recording.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: {{ .Release.Name }}-recordings }
+      {{- end }}

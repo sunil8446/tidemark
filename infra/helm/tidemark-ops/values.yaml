@@ -1,0 +1,15 @@
+redpanda:
+  brokers: redpanda.redpanda.svc.cluster.local:9093
+  # Production replication: survive one broker loss without losing acked writes.
+  replicationFactor: 3
+  minInsyncReplicas: 2
+
+image:
+  rpk: docker.redpanda.com/redpandadata/redpanda:v25.2.4
+
+topics:
+  - { name: trades.v1, partitions: 6, retentionMs: 604800000 }
+  - { name: book.v1, partitions: 6, retentionMs: 259200000 }
+  - { name: gaps.v1, partitions: 1, retentionMs: 2592000000 }
+  - { name: alerts.v1, partitions: 3, retentionMs: 2592000000 }
+  - { name: labels.v1, partitions: 3, retentionMs: 2592000000 }

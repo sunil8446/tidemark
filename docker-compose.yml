@@ -5,7 +5,10 @@
 #   docker compose --profile query up -d          # adds Trino + ClickHouse
 #   docker compose --profile ha --profile query up -d   # everything
 #
-# All state lives in named Docker volumes, never in the repo folder.
+# All state lives in named Docker volumes, never in the repo folder. Config is
+# bind-mounted from a runtime copy (`make runtime`, default ~/.tidemark-data/runtime)
+# rather than from the repo: the repo sits in a OneDrive-synced folder whose
+# file provider can make files briefly unreadable, which once crash-looped Trino.
 
 name: tidemark
 
@@ -141,7 +144,7 @@ services:
     ports: ["5433:5432"]
     volumes:
       - postgres:/var/lib/postgresql/data
-      - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -164,8 +167,8 @@ services:
       LAKE_BUCKET: ${LAKE_BUCKET:-lake}
     ports: ["8088:8080"]
     volumes:
-      - ./deploy/trino/catalog:/etc/trino/catalog:ro
-      - ./deploy/trino/jvm.config:/etc/trino/jvm.config:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/trino/catalog:/etc/trino/catalog:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/trino/jvm.config:/etc/trino/jvm.config:ro
     depends_on:
       minio: { condition: service_healthy }
       postgres: { condition: service_healthy }
@@ -183,9 +186,9 @@ services:
     ports: ["8123:8123", "19000:9000", "9363:9363"]
     volumes:
       - clickhouse:/var/lib/clickhouse
-      - ./deploy/clickhouse/prometheus.xml:/etc/clickhouse-server/config.d/prometheus.xml:ro
-      - ./deploy/clickhouse/low-memory.xml:/etc/clickhouse-server/config.d/low-memory.xml:ro
-      - ./deploy/clickhouse/initdb:/docker-entrypoint-initdb.d:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/clickhouse/prometheus.xml:/etc/clickhouse-server/config.d/prometheus.xml:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/clickhouse/low-memory.xml:/etc/clickhouse-server/config.d/low-memory.xml:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/clickhouse/initdb:/docker-entrypoint-initdb.d:ro
     ulimits:
       nofile: { soft: 262144, hard: 262144 }
     restart: unless-stopped
@@ -258,8 +261,8 @@ services:
       AIRFLOW__API__PORT: "8080"
     ports: ["8090:8080"]
     volumes:
-      - ./airflow/dags:/opt/airflow/dags:ro
-      - ./dbt:/opt/tidemark/dbt:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/airflow/dags:/opt/airflow/dags:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/dbt:/opt/tidemark/dbt:ro
     depends_on:
       postgres: { condition: service_healthy }
     restart: unless-stopped
@@ -275,7 +278,8 @@ services:
       - --web.enable-lifecycle
     ports: ["9090:9090"]
     volumes:
-      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus:/prometheus
     extra_hosts: ["host.docker.internal:host-gateway"]
     restart: unless-stopped
@@ -291,8 +295,8 @@ services:
       GF_ANALYTICS_REPORTING_ENABLED: "false"
     ports: ["3000:3000"]
     volumes:
-      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ${TIDEMARK_RUNTIME:-~/.tidemark-data/runtime}/deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana:/var/lib/grafana
     depends_on: [prometheus]
     restart: unless-stopped

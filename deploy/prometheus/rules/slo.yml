@@ -1,0 +1,99 @@
+# Tidemark SLOs: error ratios and multi-window, multi-burn-rate alerts
+# (Google SRE Workbook, ch. 5). See docs/slo.md for targets and rationale.
+#
+# For an SLO with error budget B over 30 days:
+#   page   when the 1h AND 5m error ratios exceed 14.4 x B  (2% of budget in 1h)
+#   page   when the 6h AND 30m error ratios exceed  6   x B  (5% of budget in 6h)
+#   ticket when the 3d AND 6h error ratios exceed  1   x B  (10% of budget in 3d)
+# The short window stops an alert from firing long after the problem ended.
+
+groups:
+  - name: tidemark-slo-ratios
+    interval: 30s
+    rules:
+      # SLI 1: ingest freshness. Good = live WS trade acked by Kafka within 1 s of its exchange timestamp.
+      - record: slo:ingest_freshness:error_ratio_5m
+        expr: 1 - (sum(rate(tidemark_ingest_exchange_to_kafka_seconds_bucket{le="1"}[5m])) / clamp_min(sum(rate(tidemark_ingest_exchange_to_kafka_seconds_count[5m])), 1e-9))
+      - record: slo:ingest_freshness:error_ratio_30m
+        expr: 1 - (sum(rate(tidemark_ingest_exchange_to_kafka_seconds_bucket{le="1"}[30m])) / clamp_min(sum(rate(tidemark_ingest_exchange_to_kafka_seconds_count[30m])), 1e-9))
+      - record: slo:ingest_freshness:error_ratio_1h
+        expr: 1 - (sum(rate(tidemark_ingest_exchange_to_kafka_seconds_bucket{le="1"}[1h])) / clamp_min(sum(rate(tidemark_ingest_exchange_to_kafka_seconds_count[1h])), 1e-9))
+      - record: slo:ingest_freshness:error_ratio_6h
+        expr: 1 - (sum(rate(tidemark_ingest_exchange_to_kafka_seconds_bucket{le="1"}[6h])) / clamp_min(sum(rate(tidemark_ingest_exchange_to_kafka_seconds_count[6h])), 1e-9))
+      - record: slo:ingest_freshness:error_ratio_3d
+        expr: 1 - (sum(rate(tidemark_ingest_exchange_to_kafka_seconds_bucket{le="1"}[3d])) / clamp_min(sum(rate(tidemark_ingest_exchange_to_kafka_seconds_count[3d])), 1e-9))
+
+      # SLI 2: alert latency. Good = alert emitted within 30 s of the event time that triggered it.
+      - record: slo:alert_latency:error_ratio_5m
+        expr: 1 - (sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_within_slo_total[5m])) / clamp_min(sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_total[5m])), 1e-9))
+      - record: slo:alert_latency:error_ratio_30m
+        expr: 1 - (sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_within_slo_total[30m])) / clamp_min(sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_total[30m])), 1e-9))
+      - record: slo:alert_latency:error_ratio_1h
+        expr: 1 - (sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_within_slo_total[1h])) / clamp_min(sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_total[1h])), 1e-9))
+      - record: slo:alert_latency:error_ratio_6h
+        expr: 1 - (sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_within_slo_total[6h])) / clamp_min(sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_total[6h])), 1e-9))
+      - record: slo:alert_latency:error_ratio_3d
+        expr: 1 - (sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_within_slo_total[3d])) / clamp_min(sum(rate(flink_taskmanager_job_task_operator_detector_tidemark_alerts_total[3d])), 1e-9))
+
+      # SLI 3: lakehouse freshness. Good minute = the lakehouse job completed a checkpoint
+      # (and so committed to Iceberg) in the trailing 3 minutes.
+      - record: slo:lakehouse_fresh:good
+        expr: (increase(flink_jobmanager_job_numberOfCompletedCheckpoints{job_name="tidemark-lakehouse"}[3m]) > bool 0) or on() vector(0)
+      - record: slo:lakehouse_freshness:error_ratio_5m
+        expr: 1 - avg_over_time(slo:lakehouse_fresh:good[5m])
+      - record: slo:lakehouse_freshness:error_ratio_30m
+        expr: 1 - avg_over_time(slo:lakehouse_fresh:good[30m])
+      - record: slo:lakehouse_freshness:error_ratio_1h
+        expr: 1 - avg_over_time(slo:lakehouse_fresh:good[1h])
+      - record: slo:lakehouse_freshness:error_ratio_6h
+        expr: 1 - avg_over_time(slo:lakehouse_fresh:good[6h])
+      - record: slo:lakehouse_freshness:error_ratio_3d
+        expr: 1 - avg_over_time(slo:lakehouse_fresh:good[3d])
+
+  - name: tidemark-slo-burn
+    rules:
+      # ingest freshness: 99.5% (budget 0.005)
+      - alert: IngestFreshnessFastBurn
+        expr: slo:ingest_freshness:error_ratio_1h > (14.4 * 0.005) and slo:ingest_freshness:error_ratio_5m > (14.4 * 0.005)
+        labels: { severity: page, slo: ingest_freshness }
+        annotations: { summary: "Ingest freshness burning budget 14x (2% of the 30-day budget in 1h)" }
+      - alert: IngestFreshnessSlowBurn
+        expr: slo:ingest_freshness:error_ratio_6h > (6 * 0.005) and slo:ingest_freshness:error_ratio_30m > (6 * 0.005)
+        labels: { severity: page, slo: ingest_freshness }
+        annotations: { summary: "Ingest freshness burning budget 6x (5% of the 30-day budget in 6h)" }
+      - alert: IngestFreshnessBudgetTicket
+        expr: slo:ingest_freshness:error_ratio_3d > 0.005 and slo:ingest_freshness:error_ratio_6h > 0.005
+        labels: { severity: ticket, slo: ingest_freshness }
+        annotations: { summary: "Ingest freshness over budget across 3 days" }
+
+      # alert latency: 99% (budget 0.01)
+      - alert: AlertLatencyFastBurn
+        expr: slo:alert_latency:error_ratio_1h > (14.4 * 0.01) and slo:alert_latency:error_ratio_5m > (14.4 * 0.01)
+        labels: { severity: page, slo: alert_latency }
+        annotations: { summary: "Alert latency SLO burning 14x" }
+      - alert: AlertLatencySlowBurn
+        expr: slo:alert_latency:error_ratio_6h > (6 * 0.01) and slo:alert_latency:error_ratio_30m > (6 * 0.01)
+        labels: { severity: page, slo: alert_latency }
+        annotations: { summary: "Alert latency SLO burning 6x" }
+
+      # lakehouse freshness: 99.5% of minutes (budget 0.005)
+      - alert: LakehouseFreshnessFastBurn
+        expr: slo:lakehouse_freshness:error_ratio_1h > (14.4 * 0.005) and slo:lakehouse_freshness:error_ratio_5m > (14.4 * 0.005)
+        labels: { severity: page, slo: lakehouse_freshness }
+        annotations: { summary: "Lakehouse has not committed for long enough to burn 2% of the monthly budget in 1h" }
+      - alert: LakehouseFreshnessSlowBurn
+        expr: slo:lakehouse_freshness:error_ratio_6h > (6 * 0.005) and slo:lakehouse_freshness:error_ratio_30m > (6 * 0.005)
+        labels: { severity: page, slo: lakehouse_freshness }
+        annotations: { summary: "Lakehouse freshness burning budget 6x" }
+
+      # Completeness is checked hourly by reconciliation (iceberg.ops.reconciliation_runs);
+      # ingest gaps that end unrecovered are a direct page.
+      - alert: IngestGapUnrecoverable
+        expr: increase(tidemark_ingest_gaps_resolved_total{status="unrecoverable"}[15m]) > 0
+        labels: { severity: page, slo: completeness }
+        annotations: { summary: "{{ $labels.venue }} {{ $labels.product }}: a gap could not be backfilled" }
+      - alert: IngestDisconnected
+        expr: tidemark_ingest_connected == 0
+        for: 2m
+        labels: { severity: page }
+        annotations: { summary: "{{ $labels.venue }} WebSocket down for 2 minutes" }

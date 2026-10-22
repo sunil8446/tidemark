@@ -1,0 +1,24 @@
+image:
+  repository: ghcr.io/REPLACE_ME/tidemark-go
+  tag: "0.3.0"
+  pullPolicy: IfNotPresent
+
+kafka:
+  brokers: redpanda.redpanda.svc.cluster.local:9093
+  schemaRegistry: http://redpanda.redpanda.svc.cluster.local:8081
+
+coinbase: BTC-USD,ETH-USD,SOL-USD
+kraken: BTC/USD,ETH/USD,SOL/USD
+krakenBookDepth: 10
+
+# Raw frame recordings for the replay harness. Disabled by default in-cluster.
+recording:
+  enabled: false
+  size: 20Gi
+
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { memory: 512Mi }
+
+serviceMonitor:
+  enabled: true

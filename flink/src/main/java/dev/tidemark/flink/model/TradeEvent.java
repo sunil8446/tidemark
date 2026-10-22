@@ -19,6 +19,8 @@ public class TradeEvent {
   public String ingestId;
   public boolean fromSnapshot;
   public long venueSequence; // 0 = not provided
+  public String buyerAccount; // synthetic only (injection framework)
+  public String sellerAccount;
   public int kafkaPartition;
   public long kafkaOffset;
 

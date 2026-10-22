@@ -1,0 +1,21 @@
+# App of apps. Apply once after installing ArgoCD:
+#   kubectl apply -n argocd -f infra/argocd/root.yaml
+# Every other component is an Application under infra/argocd/apps, synced
+# automatically from Git. Replace REPLACE_ME with the GitHub owner once the
+# public repo exists.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tidemark-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/tidemark.git
+    targetRevision: main
+    path: infra/argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }

@@ -1,0 +1,28 @@
+# Idempotent topic bootstrap, run by ArgoCD as a sync hook.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tidemark-topics
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: rpk
+          image: {{ .Values.image.rpk }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              {{- range .Values.topics }}
+              rpk -X brokers={{ $.Values.redpanda.brokers }} topic create {{ .name }} \
+                -p {{ .partitions }} -r {{ $.Values.redpanda.replicationFactor }} \
+                -c min.insync.replicas={{ $.Values.redpanda.minInsyncReplicas }} \
+                -c retention.ms={{ .retentionMs }} || \
+              rpk -X brokers={{ $.Values.redpanda.brokers }} topic alter-config {{ .name }} \
+                --set min.insync.replicas={{ $.Values.redpanda.minInsyncReplicas }}
+              {{- end }}

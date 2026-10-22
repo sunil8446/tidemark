@@ -61,3 +61,27 @@ ENGINE = ReplacingMergeTree(inserted_at)
 PARTITION BY toYYYYMMDD(ts)
 ORDER BY (product_id, ts)
 TTL toDateTime(ts) + INTERVAL 30 DAY;
+
+-- Detector firings. stream = 'live' for the production detector job,
+-- 'inj' for the evaluation job reading injected (labelled) replays.
+CREATE TABLE IF NOT EXISTS tidemark.alerts
+(
+    stream        LowCardinality(String),
+    alert_id      String,
+    detector      LowCardinality(String),
+    venue         LowCardinality(String),
+    product_id    LowCardinality(String),
+    event_ts      DateTime64(3, 'UTC'),
+    window_start  DateTime64(3, 'UTC'),
+    window_end    DateTime64(3, 'UTC'),
+    score         Float64,
+    threshold     Float64,
+    severity      LowCardinality(String),
+    summary       String,
+    evidence      Map(String, String),
+    emitted_at    DateTime64(3, 'UTC'),
+    inserted_at   DateTime64(3, 'UTC') DEFAULT now64(3)
+)
+ENGINE = ReplacingMergeTree(inserted_at)
+PARTITION BY toYYYYMM(event_ts)
+ORDER BY (stream, alert_id);

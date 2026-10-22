@@ -278,6 +278,58 @@ func (GapStatus) EnumDescriptor() ([]byte, []int) {
 	return file_tidemark_v1_market_proto_rawDescGZIP(), []int{4}
 }
 
+type Severity int32
+
+const (
+	Severity_SEVERITY_UNSPECIFIED Severity = 0
+	Severity_SEVERITY_LOW         Severity = 1
+	Severity_SEVERITY_MEDIUM      Severity = 2
+	Severity_SEVERITY_HIGH        Severity = 3
+)
+
+// Enum value maps for Severity.
+var (
+	Severity_name = map[int32]string{
+		0: "SEVERITY_UNSPECIFIED",
+		1: "SEVERITY_LOW",
+		2: "SEVERITY_MEDIUM",
+		3: "SEVERITY_HIGH",
+	}
+	Severity_value = map[string]int32{
+		"SEVERITY_UNSPECIFIED": 0,
+		"SEVERITY_LOW":         1,
+		"SEVERITY_MEDIUM":      2,
+		"SEVERITY_HIGH":        3,
+	}
+)
+
+func (x Severity) Enum() *Severity {
+	p := new(Severity)
+	*p = x
+	return p
+}
+
+func (x Severity) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Severity) Descriptor() protoreflect.EnumDescriptor {
+	return file_tidemark_v1_market_proto_enumTypes[5].Descriptor()
+}
+
+func (Severity) Type() protoreflect.EnumType {
+	return &file_tidemark_v1_market_proto_enumTypes[5]
+}
+
+func (x Severity) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Severity.Descriptor instead.
+func (Severity) EnumDescriptor() ([]byte, []int) {
+	return file_tidemark_v1_market_proto_rawDescGZIP(), []int{5}
+}
+
 // One executed trade. Topic trades.v1, key "venue:product_id".
 type Trade struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -293,6 +345,10 @@ type Trade struct {
 	IngestId      string                 `protobuf:"bytes,10,opt,name=ingest_id,json=ingestId,proto3" json:"ingest_id,omitempty"`                 // ingestor instance that produced it
 	FromSnapshot  bool                   `protobuf:"varint,11,opt,name=from_snapshot,json=fromSnapshot,proto3" json:"from_snapshot,omitempty"`    // replayed by the venue on subscribe (Kraken snapshot, Coinbase last_match), not live
 	VenueSequence uint64                 `protobuf:"varint,12,opt,name=venue_sequence,json=venueSequence,proto3" json:"venue_sequence,omitempty"` // added in the Week 2 schema-evolution drill: Coinbase feed sequence; 0 if none
+	// Synthetic only. Public feeds carry no trader identity; the injection
+	// framework assigns accounts so the wash-trade detector can be evaluated.
+	BuyerAccount  string `protobuf:"bytes,13,opt,name=buyer_account,json=buyerAccount,proto3" json:"buyer_account,omitempty"`
+	SellerAccount string `protobuf:"bytes,14,opt,name=seller_account,json=sellerAccount,proto3" json:"seller_account,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -409,6 +465,20 @@ func (x *Trade) GetVenueSequence() uint64 {
 		return x.VenueSequence
 	}
 	return 0
+}
+
+func (x *Trade) GetBuyerAccount() string {
+	if x != nil {
+		return x.BuyerAccount
+	}
+	return ""
+}
+
+func (x *Trade) GetSellerAccount() string {
+	if x != nil {
+		return x.SellerAccount
+	}
+	return ""
 }
 
 type BookLevel struct {
@@ -714,11 +784,247 @@ func (x *GapEvent) GetDetail() string {
 	return ""
 }
 
+// One detector firing. Topic alerts.v1, key "venue:product_id".
+// alert_id is deterministic (detector, venue, product, window start), so a
+// replayed firing upserts instead of duplicating.
+type Alert struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AlertId       string                 `protobuf:"bytes,1,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
+	Detector      string                 `protobuf:"bytes,2,opt,name=detector,proto3" json:"detector,omitempty"`                   // volume_spike | spoof_layering | dislocation | wash_trade
+	Venue         Venue                  `protobuf:"varint,3,opt,name=venue,proto3,enum=tidemark.v1.Venue" json:"venue,omitempty"` // VENUE_UNSPECIFIED for cross-venue alerts
+	ProductId     string                 `protobuf:"bytes,4,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	EventTsNs     int64                  `protobuf:"varint,5,opt,name=event_ts_ns,json=eventTsNs,proto3" json:"event_ts_ns,omitempty"`             // event time at which the detector fired
+	WindowStartNs int64                  `protobuf:"varint,6,opt,name=window_start_ns,json=windowStartNs,proto3" json:"window_start_ns,omitempty"` // evidence window: query trades/book in [start, end]
+	WindowEndNs   int64                  `protobuf:"varint,7,opt,name=window_end_ns,json=windowEndNs,proto3" json:"window_end_ns,omitempty"`
+	Score         float64                `protobuf:"fixed64,8,opt,name=score,proto3" json:"score,omitempty"`         // detector-specific (z-score, size multiple, ...)
+	Threshold     float64                `protobuf:"fixed64,9,opt,name=threshold,proto3" json:"threshold,omitempty"` // threshold in force when it fired
+	Severity      Severity               `protobuf:"varint,10,opt,name=severity,proto3,enum=tidemark.v1.Severity" json:"severity,omitempty"`
+	Summary       string                 `protobuf:"bytes,11,opt,name=summary,proto3" json:"summary,omitempty"` // one human-readable line
+	Evidence      map[string]string      `protobuf:"bytes,12,rep,name=evidence,proto3" json:"evidence,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	EmittedTsNs   int64                  `protobuf:"varint,13,opt,name=emitted_ts_ns,json=emittedTsNs,proto3" json:"emitted_ts_ns,omitempty"` // processing time, for alert-latency SLOs
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Alert) Reset() {
+	*x = Alert{}
+	mi := &file_tidemark_v1_market_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Alert) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Alert) ProtoMessage() {}
+
+func (x *Alert) ProtoReflect() protoreflect.Message {
+	mi := &file_tidemark_v1_market_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Alert.ProtoReflect.Descriptor instead.
+func (*Alert) Descriptor() ([]byte, []int) {
+	return file_tidemark_v1_market_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Alert) GetAlertId() string {
+	if x != nil {
+		return x.AlertId
+	}
+	return ""
+}
+
+func (x *Alert) GetDetector() string {
+	if x != nil {
+		return x.Detector
+	}
+	return ""
+}
+
+func (x *Alert) GetVenue() Venue {
+	if x != nil {
+		return x.Venue
+	}
+	return Venue_VENUE_UNSPECIFIED
+}
+
+func (x *Alert) GetProductId() string {
+	if x != nil {
+		return x.ProductId
+	}
+	return ""
+}
+
+func (x *Alert) GetEventTsNs() int64 {
+	if x != nil {
+		return x.EventTsNs
+	}
+	return 0
+}
+
+func (x *Alert) GetWindowStartNs() int64 {
+	if x != nil {
+		return x.WindowStartNs
+	}
+	return 0
+}
+
+func (x *Alert) GetWindowEndNs() int64 {
+	if x != nil {
+		return x.WindowEndNs
+	}
+	return 0
+}
+
+func (x *Alert) GetScore() float64 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+func (x *Alert) GetThreshold() float64 {
+	if x != nil {
+		return x.Threshold
+	}
+	return 0
+}
+
+func (x *Alert) GetSeverity() Severity {
+	if x != nil {
+		return x.Severity
+	}
+	return Severity_SEVERITY_UNSPECIFIED
+}
+
+func (x *Alert) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *Alert) GetEvidence() map[string]string {
+	if x != nil {
+		return x.Evidence
+	}
+	return nil
+}
+
+func (x *Alert) GetEmittedTsNs() int64 {
+	if x != nil {
+		return x.EmittedTsNs
+	}
+	return 0
+}
+
+// Ground truth for one injected pattern. Topic labels.v1, key "venue:product_id".
+type InjectionLabel struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InjectionId   string                 `protobuf:"bytes,1,opt,name=injection_id,json=injectionId,proto3" json:"injection_id,omitempty"`
+	Pattern       string                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"` // same vocabulary as Alert.detector
+	Venue         Venue                  `protobuf:"varint,3,opt,name=venue,proto3,enum=tidemark.v1.Venue" json:"venue,omitempty"`
+	ProductId     string                 `protobuf:"bytes,4,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	StartTsNs     int64                  `protobuf:"varint,5,opt,name=start_ts_ns,json=startTsNs,proto3" json:"start_ts_ns,omitempty"`
+	EndTsNs       int64                  `protobuf:"varint,6,opt,name=end_ts_ns,json=endTsNs,proto3" json:"end_ts_ns,omitempty"`
+	Params        map[string]string      `protobuf:"bytes,7,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InjectionLabel) Reset() {
+	*x = InjectionLabel{}
+	mi := &file_tidemark_v1_market_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InjectionLabel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InjectionLabel) ProtoMessage() {}
+
+func (x *InjectionLabel) ProtoReflect() protoreflect.Message {
+	mi := &file_tidemark_v1_market_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InjectionLabel.ProtoReflect.Descriptor instead.
+func (*InjectionLabel) Descriptor() ([]byte, []int) {
+	return file_tidemark_v1_market_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *InjectionLabel) GetInjectionId() string {
+	if x != nil {
+		return x.InjectionId
+	}
+	return ""
+}
+
+func (x *InjectionLabel) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *InjectionLabel) GetVenue() Venue {
+	if x != nil {
+		return x.Venue
+	}
+	return Venue_VENUE_UNSPECIFIED
+}
+
+func (x *InjectionLabel) GetProductId() string {
+	if x != nil {
+		return x.ProductId
+	}
+	return ""
+}
+
+func (x *InjectionLabel) GetStartTsNs() int64 {
+	if x != nil {
+		return x.StartTsNs
+	}
+	return 0
+}
+
+func (x *InjectionLabel) GetEndTsNs() int64 {
+	if x != nil {
+		return x.EndTsNs
+	}
+	return 0
+}
+
+func (x *InjectionLabel) GetParams() map[string]string {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
 var File_tidemark_v1_market_proto protoreflect.FileDescriptor
 
 const file_tidemark_v1_market_proto_rawDesc = "" +
 	"\n" +
-	"\x18tidemark/v1/market.proto\x12\vtidemark.v1\"\x9b\x03\n" +
+	"\x18tidemark/v1/market.proto\x12\vtidemark.v1\"\xe7\x03\n" +
 	"\x05Trade\x12(\n" +
 	"\x05venue\x18\x01 \x01(\x0e2\x12.tidemark.v1.VenueR\x05venue\x12\x1d\n" +
 	"\n" +
@@ -735,7 +1041,9 @@ const file_tidemark_v1_market_proto_rawDesc = "" +
 	"\tingest_id\x18\n" +
 	" \x01(\tR\bingestId\x12#\n" +
 	"\rfrom_snapshot\x18\v \x01(\bR\ffromSnapshot\x12%\n" +
-	"\x0evenue_sequence\x18\f \x01(\x04R\rvenueSequence\"3\n" +
+	"\x0evenue_sequence\x18\f \x01(\x04R\rvenueSequence\x12#\n" +
+	"\rbuyer_account\x18\r \x01(\tR\fbuyerAccount\x12%\n" +
+	"\x0eseller_account\x18\x0e \x01(\tR\rsellerAccount\"3\n" +
 	"\tBookLevel\x12\x14\n" +
 	"\x05price\x18\x01 \x01(\tR\x05price\x12\x10\n" +
 	"\x03qty\x18\x02 \x01(\tR\x03qty\"\x88\x03\n" +
@@ -770,7 +1078,38 @@ const file_tidemark_v1_market_proto_rawDesc = "" +
 	"\x0edetected_ts_ns\x18\t \x01(\x03R\fdetectedTsNs\x12$\n" +
 	"\x0eresolved_ts_ns\x18\n" +
 	" \x01(\x03R\fresolvedTsNs\x12\x16\n" +
-	"\x06detail\x18\v \x01(\tR\x06detail*D\n" +
+	"\x06detail\x18\v \x01(\tR\x06detail\"\x93\x04\n" +
+	"\x05Alert\x12\x19\n" +
+	"\balert_id\x18\x01 \x01(\tR\aalertId\x12\x1a\n" +
+	"\bdetector\x18\x02 \x01(\tR\bdetector\x12(\n" +
+	"\x05venue\x18\x03 \x01(\x0e2\x12.tidemark.v1.VenueR\x05venue\x12\x1d\n" +
+	"\n" +
+	"product_id\x18\x04 \x01(\tR\tproductId\x12\x1e\n" +
+	"\vevent_ts_ns\x18\x05 \x01(\x03R\teventTsNs\x12&\n" +
+	"\x0fwindow_start_ns\x18\x06 \x01(\x03R\rwindowStartNs\x12\"\n" +
+	"\rwindow_end_ns\x18\a \x01(\x03R\vwindowEndNs\x12\x14\n" +
+	"\x05score\x18\b \x01(\x01R\x05score\x12\x1c\n" +
+	"\tthreshold\x18\t \x01(\x01R\tthreshold\x121\n" +
+	"\bseverity\x18\n" +
+	" \x01(\x0e2\x15.tidemark.v1.SeverityR\bseverity\x12\x18\n" +
+	"\asummary\x18\v \x01(\tR\asummary\x12<\n" +
+	"\bevidence\x18\f \x03(\v2 .tidemark.v1.Alert.EvidenceEntryR\bevidence\x12\"\n" +
+	"\remitted_ts_ns\x18\r \x01(\x03R\vemittedTsNs\x1a;\n" +
+	"\rEvidenceEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xce\x02\n" +
+	"\x0eInjectionLabel\x12!\n" +
+	"\finjection_id\x18\x01 \x01(\tR\vinjectionId\x12\x18\n" +
+	"\apattern\x18\x02 \x01(\tR\apattern\x12(\n" +
+	"\x05venue\x18\x03 \x01(\x0e2\x12.tidemark.v1.VenueR\x05venue\x12\x1d\n" +
+	"\n" +
+	"product_id\x18\x04 \x01(\tR\tproductId\x12\x1e\n" +
+	"\vstart_ts_ns\x18\x05 \x01(\x03R\tstartTsNs\x12\x1a\n" +
+	"\tend_ts_ns\x18\x06 \x01(\x03R\aendTsNs\x12?\n" +
+	"\x06params\x18\a \x03(\v2'.tidemark.v1.InjectionLabel.ParamsEntryR\x06params\x1a9\n" +
+	"\vParamsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*D\n" +
 	"\x05Venue\x12\x15\n" +
 	"\x11VENUE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eVENUE_COINBASE\x10\x01\x12\x10\n" +
@@ -794,7 +1133,12 @@ const file_tidemark_v1_market_proto_rawDesc = "" +
 	"\x13GAP_STATUS_DETECTED\x10\x01\x12\x18\n" +
 	"\x14GAP_STATUS_RECOVERED\x10\x02\x12\x1c\n" +
 	"\x18GAP_STATUS_UNRECOVERABLE\x10\x03\x12\x1f\n" +
-	"\x1bGAP_STATUS_ABSENT_AT_SOURCE\x10\x04BA\n" +
+	"\x1bGAP_STATUS_ABSENT_AT_SOURCE\x10\x04*^\n" +
+	"\bSeverity\x12\x18\n" +
+	"\x14SEVERITY_UNSPECIFIED\x10\x00\x12\x10\n" +
+	"\fSEVERITY_LOW\x10\x01\x12\x13\n" +
+	"\x0fSEVERITY_MEDIUM\x10\x02\x12\x11\n" +
+	"\rSEVERITY_HIGH\x10\x03BA\n" +
 	"\x15dev.tidemark.proto.v1P\x01Z&tidemark/gen/go/tidemark/v1;tidemarkv1b\x06proto3"
 
 var (
@@ -809,35 +1153,45 @@ func file_tidemark_v1_market_proto_rawDescGZIP() []byte {
 	return file_tidemark_v1_market_proto_rawDescData
 }
 
-var file_tidemark_v1_market_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_tidemark_v1_market_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_tidemark_v1_market_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_tidemark_v1_market_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_tidemark_v1_market_proto_goTypes = []any{
-	(Venue)(0),         // 0: tidemark.v1.Venue
-	(Side)(0),          // 1: tidemark.v1.Side
-	(Source)(0),        // 2: tidemark.v1.Source
-	(GapKind)(0),       // 3: tidemark.v1.GapKind
-	(GapStatus)(0),     // 4: tidemark.v1.GapStatus
-	(*Trade)(nil),      // 5: tidemark.v1.Trade
-	(*BookLevel)(nil),  // 6: tidemark.v1.BookLevel
-	(*BookUpdate)(nil), // 7: tidemark.v1.BookUpdate
-	(*GapEvent)(nil),   // 8: tidemark.v1.GapEvent
+	(Venue)(0),             // 0: tidemark.v1.Venue
+	(Side)(0),              // 1: tidemark.v1.Side
+	(Source)(0),            // 2: tidemark.v1.Source
+	(GapKind)(0),           // 3: tidemark.v1.GapKind
+	(GapStatus)(0),         // 4: tidemark.v1.GapStatus
+	(Severity)(0),          // 5: tidemark.v1.Severity
+	(*Trade)(nil),          // 6: tidemark.v1.Trade
+	(*BookLevel)(nil),      // 7: tidemark.v1.BookLevel
+	(*BookUpdate)(nil),     // 8: tidemark.v1.BookUpdate
+	(*GapEvent)(nil),       // 9: tidemark.v1.GapEvent
+	(*Alert)(nil),          // 10: tidemark.v1.Alert
+	(*InjectionLabel)(nil), // 11: tidemark.v1.InjectionLabel
+	nil,                    // 12: tidemark.v1.Alert.EvidenceEntry
+	nil,                    // 13: tidemark.v1.InjectionLabel.ParamsEntry
 }
 var file_tidemark_v1_market_proto_depIdxs = []int32{
 	0,  // 0: tidemark.v1.Trade.venue:type_name -> tidemark.v1.Venue
 	1,  // 1: tidemark.v1.Trade.taker_side:type_name -> tidemark.v1.Side
 	2,  // 2: tidemark.v1.Trade.source:type_name -> tidemark.v1.Source
 	0,  // 3: tidemark.v1.BookUpdate.venue:type_name -> tidemark.v1.Venue
-	6,  // 4: tidemark.v1.BookUpdate.bids:type_name -> tidemark.v1.BookLevel
-	6,  // 5: tidemark.v1.BookUpdate.asks:type_name -> tidemark.v1.BookLevel
+	7,  // 4: tidemark.v1.BookUpdate.bids:type_name -> tidemark.v1.BookLevel
+	7,  // 5: tidemark.v1.BookUpdate.asks:type_name -> tidemark.v1.BookLevel
 	2,  // 6: tidemark.v1.BookUpdate.source:type_name -> tidemark.v1.Source
 	0,  // 7: tidemark.v1.GapEvent.venue:type_name -> tidemark.v1.Venue
 	3,  // 8: tidemark.v1.GapEvent.kind:type_name -> tidemark.v1.GapKind
 	4,  // 9: tidemark.v1.GapEvent.status:type_name -> tidemark.v1.GapStatus
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	0,  // 10: tidemark.v1.Alert.venue:type_name -> tidemark.v1.Venue
+	5,  // 11: tidemark.v1.Alert.severity:type_name -> tidemark.v1.Severity
+	12, // 12: tidemark.v1.Alert.evidence:type_name -> tidemark.v1.Alert.EvidenceEntry
+	0,  // 13: tidemark.v1.InjectionLabel.venue:type_name -> tidemark.v1.Venue
+	13, // 14: tidemark.v1.InjectionLabel.params:type_name -> tidemark.v1.InjectionLabel.ParamsEntry
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_tidemark_v1_market_proto_init() }
@@ -850,8 +1204,8 @@ func file_tidemark_v1_market_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tidemark_v1_market_proto_rawDesc), len(file_tidemark_v1_market_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   4,
+			NumEnums:      6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

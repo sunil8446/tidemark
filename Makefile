@@ -2,13 +2,21 @@ COMPOSE := docker compose
 # Build outputs live outside the synced repo folder.
 BIN := $(HOME)/.tidemark-data/bin
 
-.PHONY: help env up up-ha up-query up-stream up-orchestrate up-all down nuke ps logs topics smoke
+.PHONY: help env runtime up up-ha up-query up-stream up-orchestrate up-all down nuke ps logs topics smoke
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
 
-env: ## Create .env from .env.example if missing
+env: runtime ## Create .env from .env.example if missing
 	@test -f .env || cp .env.example .env
+
+RUNTIME ?= $(HOME)/.tidemark-data/runtime
+runtime: ## Copy config, DAGs and dbt to the runtime dir that containers mount (outside OneDrive)
+	@mkdir -p $(RUNTIME)
+	@rsync -a --delete deploy/ $(RUNTIME)/deploy/
+	@rsync -a --delete airflow/dags/ $(RUNTIME)/airflow/dags/
+	@rsync -a --delete --exclude target --exclude logs dbt/ $(RUNTIME)/dbt/
+	@echo "runtime config synced to $(RUNTIME)"
 
 up: env ## Lite stack: 1 broker, MinIO, Postgres, Prometheus, Grafana
 	$(COMPOSE) up -d
@@ -95,3 +103,14 @@ dbt-build: ## dbt build (models + tests) against local Trino
 
 reconcile: ## Check lakehouse completeness for the last 2h and repair gaps over REST
 	go run ./ingest/cmd/reconcile --window 2h --settle 10m
+
+# ---------------------------------------------------------------- Week 3: images
+# Build contexts are minimal tars: scanning the whole synced OneDrive folder
+# can stall on the file provider, and a small context keeps builds reproducible.
+.PHONY: image-go image-flink
+
+image-go: ## Go tools image (ingest, replay, audit, reconcile, evaluate)
+	tar -cf - go.mod go.sum gen schemas ingest replay | docker build -t tidemark-go:0.3 -f ingest/Dockerfile -
+
+image-flink: ## Flink image with the Tidemark jobs
+	tar -cf - schemas flink/pom.xml flink/src flink/Dockerfile | docker build -t tidemark-flink:0.3 -f flink/Dockerfile -

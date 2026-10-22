@@ -1,0 +1,17 @@
+# 3 brokers, RF=3, min.insync.replicas=2: any one broker can die without
+# losing an acknowledged write (acks=all waits for 2 of 3 replicas).
+statefulset:
+  replicas: 3
+config:
+  cluster:
+    default_topic_replications: 3
+    auto_create_topics_enabled: false
+resources:
+  cpu: { cores: 1 }
+  memory: { container: { max: 2.5Gi } }
+storage:
+  persistentVolume: { enabled: true, size: 20Gi }
+tls: { enabled: false } # in-cluster only; enable with cert-manager for anything shared
+external: { enabled: false }
+console: { enabled: true }
+monitoring: { enabled: true, scrapeInterval: 15s }

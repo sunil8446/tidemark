@@ -17,11 +17,14 @@ import (
 )
 
 type Topics struct {
-	Trades, Book, Gaps string
+	Trades, Book, Gaps, Alerts, Labels string
 }
 
 func DefaultTopics(suffix string) Topics {
-	return Topics{Trades: "trades.v1" + suffix, Book: "book.v1" + suffix, Gaps: "gaps.v1" + suffix}
+	return Topics{
+		Trades: "trades.v1" + suffix, Book: "book.v1" + suffix, Gaps: "gaps.v1" + suffix,
+		Alerts: "alerts.v1" + suffix, Labels: "labels.v1" + suffix,
+	}
 }
 
 // Kafka produces Confluent-framed Protobuf records. The client is idempotent
@@ -79,7 +82,7 @@ func RegisterSchemas(ctx context.Context, url string, t Topics) (map[string]int,
 		return nil, err
 	}
 	ids := map[string]int{}
-	for _, topic := range []string{t.Trades, t.Book, t.Gaps} {
+	for _, topic := range []string{t.Trades, t.Book, t.Gaps, t.Alerts, t.Labels} {
 		subject := topic + "-value"
 		for _, res := range cl.SetCompatibility(ctx, sr.SetCompatibility{Level: sr.CompatBackward}, subject) {
 			if res.Err != nil {
@@ -135,6 +138,11 @@ func (k *Kafka) Book(b *pb.BookUpdate) {
 
 func (k *Kafka) Gap(g *pb.GapEvent) {
 	k.produce(k.topics.Gaps, venue.Key(g.Venue, g.ProductId), schemas.IndexGapEvent, g, nil)
+}
+
+// Label records ground truth for one injected pattern (replay --inject).
+func (k *Kafka) Label(l *pb.InjectionLabel) {
+	k.produce(k.topics.Labels, venue.Key(l.Venue, l.ProductId), schemas.IndexLabel, l, nil)
 }
 
 func (k *Kafka) Flush(ctx context.Context) error { return k.cl.Flush(ctx) }

@@ -3,8 +3,10 @@ package dev.tidemark.flink;
 import dev.tidemark.flink.dedup.DedupTrades;
 import dev.tidemark.flink.kafka.Deserializers;
 import dev.tidemark.flink.lake.Lakehouse;
+import dev.tidemark.flink.lake.BookCheckpoints;
 import dev.tidemark.flink.lake.Rows;
 import dev.tidemark.flink.model.BookLevelEvent;
+import dev.tidemark.flink.model.BookMsg;
 import dev.tidemark.flink.model.GapRecord;
 import dev.tidemark.flink.model.TradeEvent;
 import java.time.Duration;
@@ -45,6 +47,8 @@ public class LakehouseJob {
     Duration outOfOrder = Duration.ofSeconds(p.getLong("out-of-order-s", 5));
     Duration idle = Duration.ofSeconds(p.getLong("idle-s", 30));
     Duration dedupTtl = Duration.ofHours(p.getLong("dedup-ttl-h", 24));
+    // market for live data; market_inj when lakehousing the injected evaluation stream.
+    String namespace = p.get("namespace", Lakehouse.NAMESPACE);
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.getConfig().setGlobalJobParameters(p);
@@ -56,9 +60,10 @@ public class LakehouseJob {
     cc.setTolerableCheckpointFailureNumber(3);
 
     CatalogLoader catalog = Lakehouse.catalogLoader(p);
-    TableLoader tradesTable = Lakehouse.ensureTable(catalog, "raw_trades", Lakehouse.RAW_TRADES, "event_ts");
-    TableLoader bookTable = Lakehouse.ensureTable(catalog, "book_deltas", Lakehouse.BOOK_DELTAS, "event_ts");
-    TableLoader gapsTable = Lakehouse.ensureTable(catalog, "gap_events", Lakehouse.GAP_EVENTS, "detected_ts");
+    TableLoader tradesTable = Lakehouse.ensureTable(catalog, namespace, "raw_trades", Lakehouse.RAW_TRADES, "event_ts");
+    TableLoader bookTable = Lakehouse.ensureTable(catalog, namespace, "book_deltas", Lakehouse.BOOK_DELTAS, "event_ts");
+    TableLoader gapsTable = Lakehouse.ensureTable(catalog, namespace, "gap_events", Lakehouse.GAP_EVENTS, "detected_ts");
+    TableLoader snapshotsTable = Lakehouse.ensureTable(catalog, namespace, "book_snapshots", Lakehouse.BOOK_SNAPSHOTS, "snapshot_ts");
 
     // Trades: event-time watermarks, then dedup on (venue, product, trade_id).
     WatermarkStrategy<TradeEvent> tradeWm = WatermarkStrategy.<TradeEvent>forBoundedOutOfOrderness(outOfOrder)
@@ -91,6 +96,21 @@ public class LakehouseJob {
     FlinkSink.forRowData(bookRows).tableLoader(bookTable).writeParallelism(1)
         .uidPrefix("sink-book-deltas").append();
 
+    // Top-of-book checkpoints every 10 s, so "the book at time T" is a bounded lookup.
+    WatermarkStrategy<BookMsg> bookMsgWm = WatermarkStrategy.<BookMsg>forBoundedOutOfOrderness(outOfOrder)
+        .withTimestampAssigner((b, ts) -> b.eventTsUs / 1000)
+        .withIdleness(idle);
+    DataStream<RowData> snapshotRows = env
+        .fromSource(source(brokers, "book.v1" + suffix, group + "-snapshots", new Deserializers.BookMessages()), bookMsgWm,
+            "book.v1 (messages)")
+        .uid("src-book-msgs").name("book.v1 (messages)")
+        .keyBy(BookMsg::instrumentKey)
+        .process(new BookCheckpoints(p.getLong("book-checkpoint-ms", 10_000), p.getInt("kraken-book-depth", 10)))
+        .returns(InternalTypeInfo.of(FlinkSchemaUtil.convert(Lakehouse.BOOK_SNAPSHOTS)))
+        .uid("book-checkpoints").name("book checkpoints 10s");
+    FlinkSink.forRowData(snapshotRows).tableLoader(snapshotsTable).writeParallelism(1)
+        .uidPrefix("sink-book-snapshots").append();
+
     // Gap lifecycle events, for the gap ledger mart.
     DataStream<RowData> gapRows = env
         .fromSource(source(brokers, "gaps.v1" + suffix, group, new Deserializers.Gaps()),
@@ -102,7 +122,7 @@ public class LakehouseJob {
     FlinkSink.forRowData(gapRows).tableLoader(gapsTable).writeParallelism(1)
         .uidPrefix("sink-gap-events").append();
 
-    env.execute("tidemark-lakehouse");
+    env.execute(Lakehouse.NAMESPACE.equals(namespace) ? "tidemark-lakehouse" : "tidemark-lakehouse-" + namespace);
   }
 
   static <T> KafkaSource<T> source(String brokers, String topic, String group, KafkaRecordDeserializationSchema<T> d) {

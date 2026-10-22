@@ -3,6 +3,8 @@ package dev.tidemark.flink.clickhouse;
 import dev.tidemark.flink.analytics.Bar;
 import dev.tidemark.flink.analytics.Spread;
 import dev.tidemark.flink.analytics.Vwap;
+import dev.tidemark.flink.detect.AlertEvent;
+import java.util.Map;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -40,6 +42,22 @@ public final class Json {
     return "{\"venue\":" + q(v.venue) + ",\"product_id\":" + q(v.productId) + ",\"window\":" + q(v.window)
         + ",\"window_end\":" + ts(v.windowEndMs) + ",\"vwap\":" + d(v.vwap) + ",\"volume\":" + d(v.volume)
         + ",\"trade_count\":" + v.tradeCount + "}";
+  }
+
+  public static String alert(AlertEvent a, String stream) {
+    StringBuilder ev = new StringBuilder("{");
+    for (Map.Entry<String, String> e : a.evidence.entrySet()) {
+      if (ev.length() > 1) {
+        ev.append(',');
+      }
+      ev.append(q(e.getKey())).append(':').append(q(e.getValue()));
+    }
+    ev.append('}');
+    return "{\"stream\":" + q(stream) + ",\"alert_id\":" + q(a.alertId) + ",\"detector\":" + q(a.detector)
+        + ",\"venue\":" + q(a.venue) + ",\"product_id\":" + q(a.productId) + ",\"event_ts\":" + ts(a.eventTsMs)
+        + ",\"window_start\":" + ts(a.windowStartMs) + ",\"window_end\":" + ts(a.windowEndMs)
+        + ",\"score\":" + a.score + ",\"threshold\":" + a.threshold + ",\"severity\":" + q(a.severity)
+        + ",\"summary\":" + q(a.summary) + ",\"evidence\":" + ev + ",\"emitted_at\":" + ts(a.emittedTsMs) + "}";
   }
 
   public static String spread(Spread s) {

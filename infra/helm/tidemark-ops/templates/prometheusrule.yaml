@@ -1,0 +1,7 @@
+# The same SLO rules as deploy/prometheus/rules/slo.yml, for kube-prometheus-stack.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tidemark-slo
+spec:
+{{ .Files.Get "files/slo.yml" | indent 2 }}

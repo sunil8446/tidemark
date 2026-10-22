@@ -18,6 +18,8 @@
     <hadoop.version>3.3.6</hadoop.version>
     <protobuf.version>4.31.1</protobuf.version>
     <junit.version>5.11.4</junit.version>
+    <!-- Outside the synced OneDrive folder locally; overridden in Docker builds. -->
+    <tidemark.build.dir>${user.home}/.tidemark-data/build/flink</tidemark.build.dir>
   </properties>
 
   <dependencies>
@@ -128,7 +130,14 @@
 
   <build>
     <!-- Build output stays out of the synced OneDrive folder. -->
-    <directory>${user.home}/.tidemark-data/build/flink</directory>
+    <directory>${tidemark.build.dir}</directory>
+    <resources>
+      <!-- market.proto ships in the jar so jobs can register schemas they produce. -->
+      <resource>
+        <directory>${project.basedir}/../schemas</directory>
+        <includes><include>**/*.proto</include></includes>
+      </resource>
+    </resources>
     <extensions>
       <extension>
         <groupId>kr.motd.maven</groupId>
@@ -160,6 +169,10 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.2</version>
+        <configuration>
+          <!-- Same module opens the Flink distribution uses on Java 17+ (Kryo needs them). -->
+          <argLine>--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED</argLine>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

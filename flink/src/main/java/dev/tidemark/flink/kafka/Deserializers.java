@@ -1,6 +1,7 @@
 package dev.tidemark.flink.kafka;
 
 import dev.tidemark.flink.model.BookLevelEvent;
+import dev.tidemark.flink.model.BookMsg;
 import dev.tidemark.flink.model.GapRecord;
 import dev.tidemark.flink.model.TradeEvent;
 import dev.tidemark.proto.v1.BookLevel;
@@ -41,6 +42,8 @@ public final class Deserializers {
     e.ingestId = t.getIngestId();
     e.fromSnapshot = t.getFromSnapshot();
     e.venueSequence = t.getVenueSequence();
+    e.buyerAccount = t.getBuyerAccount().isEmpty() ? null : t.getBuyerAccount();
+    e.sellerAccount = t.getSellerAccount().isEmpty() ? null : t.getSellerAccount();
     e.kafkaPartition = partition;
     e.kafkaOffset = offset;
     return e;
@@ -96,6 +99,31 @@ public final class Deserializers {
     @Override
     public TypeInformation<BookLevelEvent> getProducedType() {
       return TypeInformation.of(BookLevelEvent.class);
+    }
+  }
+
+  /** book.v1 → one BookMsg per message (not flattened), for book-aware detectors. */
+  public static class BookMessages implements KafkaRecordDeserializationSchema<BookMsg> {
+    @Override
+    public void deserialize(ConsumerRecord<byte[], byte[]> r, Collector<BookMsg> out) throws IOException {
+      BookUpdate b = BookUpdate.parseFrom(ConfluentProtobuf.unwrap(r.value()).payload());
+      BookMsg m = new BookMsg();
+      m.venue = enumName(b.getVenue(), "VENUE_");
+      m.productId = b.getProductId();
+      m.isSnapshot = b.getIsSnapshot();
+      for (BookLevel l : b.getBidsList()) {
+        m.bids.add(new BookMsg.Level(l.getPrice(), l.getQty()));
+      }
+      for (BookLevel l : b.getAsksList()) {
+        m.asks.add(new BookMsg.Level(l.getPrice(), l.getQty()));
+      }
+      m.eventTsUs = b.getEventTsNs() / 1_000;
+      out.collect(m);
+    }
+
+    @Override
+    public TypeInformation<BookMsg> getProducedType() {
+      return TypeInformation.of(BookMsg.class);
     }
   }
 

@@ -1,0 +1,61 @@
+# Chaos Mesh versions of chaos/run.sh, for the Kubernetes deployment.
+# Apply one at a time:  kubectl apply -f chaos/k8s/experiments.yaml -l experiment=<name>
+# then run reconcile over the window, exactly as the local script does.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: broker-kill
+  namespace: redpanda
+  labels: { experiment: broker-kill }
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces: [redpanda]
+    labelSelectors: { app.kubernetes.io/name: redpanda, app.kubernetes.io/component: redpanda-statefulset }
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: taskmanager-kill
+  namespace: tidemark
+  labels: { experiment: taskmanager-kill }
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces: [tidemark]
+    labelSelectors: { component: taskmanager, app: tidemark-lakehouse }
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: ingest-partition
+  namespace: tidemark
+  labels: { experiment: ingest-partition }
+spec:
+  action: partition
+  mode: all
+  direction: both
+  duration: 60s
+  selector:
+    namespaces: [tidemark]
+    labelSelectors: { app.kubernetes.io/name: tidemark-ingest }
+  # No target: cut the ingestor off from everything (venues and Kafka).
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: websocket-drop
+  namespace: tidemark
+  labels: { experiment: websocket-drop }
+spec:
+  action: loss
+  mode: all
+  duration: 20s
+  loss: { loss: "100", correlation: "100" }
+  selector:
+    namespaces: [tidemark]
+    labelSelectors: { app.kubernetes.io/name: tidemark-ingest }
+  direction: to
+  externalTargets: [ws-feed.exchange.coinbase.com, ws.kraken.com]

@@ -1,0 +1,22 @@
+# ClickHouse for hot aggregates and alerts (Altinity operator). Tables are
+# created from deploy/clickhouse/initdb by the Flink jobs' first deploy hook.
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseInstallation
+metadata:
+  name: tidemark
+spec:
+  configuration:
+    users:
+      tidemark/networks/ip: ["::/0"]
+      tidemark/k8s_secret_password: tidemark/clickhouse-credentials/password
+    clusters:
+      - name: hot
+        layout: { shardsCount: 1, replicasCount: 1 }
+  defaults:
+    templates: { dataVolumeClaimTemplate: data }
+  templates:
+    volumeClaimTemplates:
+      - name: data
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources: { requests: { storage: 20Gi } }

@@ -18,18 +18,18 @@ public final class Rows {
 
   private Rows() {}
 
-  static StringData str(String s) {
+  public static StringData str(String s) {
     return s == null ? null : StringData.fromString(s);
   }
 
-  static DecimalData dec(BigDecimal v) {
+  public static DecimalData dec(BigDecimal v) {
     if (v == null) {
       return null;
     }
     return DecimalData.fromBigDecimal(v.setScale(SCALE, RoundingMode.HALF_EVEN), PRECISION, SCALE);
   }
 
-  static TimestampData ts(long micros) {
+  public static TimestampData ts(long micros) {
     if (micros <= 0) {
       return null;
     }

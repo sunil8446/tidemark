@@ -15,4 +15,6 @@ var (
 	IndexTrade      = []int{0}
 	IndexBookUpdate = []int{2}
 	IndexGapEvent   = []int{3}
+	IndexAlert      = []int{4}
+	IndexLabel      = []int{5}
 )
