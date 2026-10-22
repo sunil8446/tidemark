@@ -1,6 +1,8 @@
 COMPOSE := docker compose
+# Build outputs live outside the synced repo folder.
+BIN := $(HOME)/.tidemark-data/bin
 
-.PHONY: help env up up-ha up-query up-all down nuke ps logs topics smoke
+.PHONY: help env up up-ha up-query up-stream up-all down nuke ps logs topics smoke
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -17,20 +19,23 @@ up-ha: env ## Lite stack plus brokers 2 and 3
 up-query: env ## Lite stack plus Trino and ClickHouse
 	$(COMPOSE) --profile query up -d
 
+up-stream: env ## Lite stack plus Trino, ClickHouse and Flink
+	$(COMPOSE) --profile query --profile stream up -d
+
 up-all: env ## Everything (needs ~8 GB for Docker)
-	$(COMPOSE) --profile ha --profile query up -d
+	$(COMPOSE) --profile ha --profile query --profile stream up -d
 
 down: ## Stop all containers, keep data
-	$(COMPOSE) --profile ha --profile query down
+	$(COMPOSE) --profile ha --profile query --profile stream down
 
 nuke: ## Stop all containers and DELETE all volumes
-	$(COMPOSE) --profile ha --profile query down -v
+	$(COMPOSE) --profile ha --profile query --profile stream down -v
 
 ps: ## Show container status
-	$(COMPOSE) --profile ha --profile query ps
+	$(COMPOSE) --profile ha --profile query --profile stream ps
 
 logs: ## Tail logs (make logs S=trino)
-	$(COMPOSE) --profile ha --profile query logs -f $(S)
+	$(COMPOSE) --profile ha --profile query --profile stream logs -f $(S)
 
 topics: ## Create Kafka topics (RF follows broker count)
 	./scripts/create-topics.sh
@@ -44,9 +49,10 @@ smoke: ## Check every running service answers
 gen: ## Regenerate Protobuf code
 	PATH="$$PATH:$$(go env GOPATH)/bin" buf lint && PATH="$$PATH:$$(go env GOPATH)/bin" buf generate
 
-build: ## Build ingest and replay binaries into ./bin
-	go build -o bin/ingest ./ingest/cmd/ingest
-	go build -o bin/replay ./replay/cmd/replay
+build: ## Build ingest, replay and audit binaries into ~/.tidemark-data/bin
+	go build -o $(BIN)/ingest ./ingest/cmd/ingest
+	go build -o $(BIN)/replay ./replay/cmd/replay
+	go build -o $(BIN)/audit ./ingest/cmd/audit
 
 test: ## Unit tests (race detector on)
 	go test -race ./...
@@ -55,7 +61,22 @@ test-integration: ## Integration tests against a throwaway Redpanda container
 	go test -tags integration -count=1 ./ingest/sink/
 
 ingest: build ## Run the live ingestor against the local stack
-	./bin/ingest --debug-endpoints
+	$(BIN)/ingest --debug-endpoints
 
 replay: build ## Replay recordings: make replay FILES="~/.tidemark-data/recordings/*.zst" SPEED=10
-	./bin/replay --speed $(or $(SPEED),1) $(FILES)
+	$(BIN)/replay --speed $(or $(SPEED),1) $(FILES)
+
+# ---------------------------------------------------------------- Week 2: stream processing
+.PHONY: flink-build flink-test flink-submit flink-jobs
+
+flink-build: ## Build the Flink job jar into ~/.tidemark-data/build/flink
+	cd flink && mvn -q -B package -DskipTests
+
+flink-test: ## Flink unit tests
+	cd flink && mvn -q -B test
+
+flink-submit: ## Submit the lakehouse job (JOB=dev.tidemark.flink.LakehouseJob ARGS="...")
+	docker exec jobmanager flink run -d -c $(or $(JOB),dev.tidemark.flink.LakehouseJob) /opt/flink/usrlib/tidemark-flink.jar $(ARGS)
+
+flink-jobs: ## List running Flink jobs
+	docker exec jobmanager flink list

@@ -185,8 +185,56 @@ services:
       - clickhouse:/var/lib/clickhouse
       - ./deploy/clickhouse/prometheus.xml:/etc/clickhouse-server/config.d/prometheus.xml:ro
       - ./deploy/clickhouse/low-memory.xml:/etc/clickhouse-server/config.d/low-memory.xml:ro
+      - ./deploy/clickhouse/initdb:/docker-entrypoint-initdb.d:ro
     ulimits:
       nofile: { soft: 262144, hard: 262144 }
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- stream processing
+  jobmanager:
+    image: flink:1.20.3-scala_2.12-java17
+    container_name: jobmanager
+    profiles: [stream]
+    networks: [tidemark]
+    command: jobmanager
+    ports: ["8081:8081"]
+    environment: &flink-env
+      ENABLE_BUILT_IN_PLUGINS: flink-s3-fs-presto-1.20.3.jar
+      AWS_REGION: us-east-1
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        jobmanager.memory.process.size: 1024m
+        taskmanager.memory.process.size: 2048m
+        taskmanager.numberOfTaskSlots: 4
+        parallelism.default: 1
+        state.backend.type: rocksdb
+        state.backend.incremental: true
+        execution.checkpointing.dir: s3://${CHECKPOINT_BUCKET:-checkpoints}/flink
+        execution.checkpointing.savepoint-dir: s3://${CHECKPOINT_BUCKET:-checkpoints}/savepoints
+        s3.endpoint: http://minio:9000
+        s3.path.style.access: true
+        s3.access-key: ${MINIO_ROOT_USER:-tidemark}
+        s3.secret-key: ${MINIO_ROOT_PASSWORD:-tidemark-local-dev}
+        restart-strategy.type: exponential-delay
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+        metrics.reporter.prom.port: 9249
+    volumes:
+      - ${HOME}/.tidemark-data/build/flink:/opt/flink/usrlib:ro
+    depends_on:
+      minio: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  taskmanager:
+    image: flink:1.20.3-scala_2.12-java17
+    container_name: taskmanager
+    profiles: [stream]
+    networks: [tidemark]
+    command: taskmanager
+    environment: *flink-env
+    volumes:
+      - ${HOME}/.tidemark-data/build/flink:/opt/flink/usrlib:ro
+    depends_on: [jobmanager]
     restart: unless-stopped
 
   # ---------------------------------------------------------------- observability
