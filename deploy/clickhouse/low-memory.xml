@@ -1,0 +1,8 @@
+<!-- Keep ClickHouse small enough to share a laptop with the rest of the stack. -->
+<clickhouse>
+    <max_server_memory_usage_to_ram_ratio>0.25</max_server_memory_usage_to_ram_ratio>
+    <mark_cache_size>268435456</mark_cache_size>
+    <logger>
+        <level>warning</level>
+    </logger>
+</clickhouse>

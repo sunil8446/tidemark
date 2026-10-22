@@ -1,0 +1,49 @@
+# Secrets and local config
+.env
+*.pem
+*.key
+
+# Runtime data lives outside the repo (see README: ~/.tidemark-data)
+/data/
+*.ndjson
+*.ndjson.zst
+*.ndjson.gz
+
+# Go
+/ingest/bin/
+/replay/bin/
+*.test
+coverage.out
+
+# Java / Flink
+/flink/**/target/
+*.class
+
+# Python
+__pycache__/
+.venv/
+*.pyc
+.pytest_cache/
+
+# dbt
+/dbt/target/
+/dbt/dbt_packages/
+/dbt/logs/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform.lock.hcl.bak
+
+# Node
+node_modules/
+
+# OS / editor / OneDrive
+.DS_Store
+.idea/
+.vscode/
+*.swp
+Icon?
+*-conflicted copy*

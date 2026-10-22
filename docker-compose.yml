@@ -1,0 +1,237 @@
+# Tidemark local stack.
+#
+#   docker compose up -d                          # lite: 1 broker + storage + observability
+#   docker compose --profile ha up -d             # adds brokers 2 and 3 (RF=3 drills)
+#   docker compose --profile query up -d          # adds Trino + ClickHouse
+#   docker compose --profile ha --profile query up -d   # everything
+#
+# All state lives in named Docker volumes, never in the repo folder.
+
+name: tidemark
+
+x-redpanda-common: &redpanda-common
+  image: docker.redpanda.com/redpandadata/redpanda:v25.2.4
+  networks: [tidemark]
+  restart: unless-stopped
+
+services:
+  # ---------------------------------------------------------------- event bus
+  redpanda-0:
+    <<: *redpanda-common
+    container_name: redpanda-0
+    command:
+      - redpanda start
+      - --mode dev-container
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --node-id 0
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda-0:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda-0:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda-0:33145
+      - --advertise-rpc-addr redpanda-0:33145
+    ports: ["19092:19092", "18081:18081", "18082:18082", "19644:9644"]
+    volumes: [redpanda-0:/var/lib/redpanda/data]
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redpanda-1:
+    <<: *redpanda-common
+    container_name: redpanda-1
+    profiles: [ha]
+    command:
+      - redpanda start
+      - --mode dev-container
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --node-id 1
+      - --seeds redpanda-0:33145
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:29092
+      - --advertise-kafka-addr internal://redpanda-1:9092,external://localhost:29092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:28082
+      - --advertise-pandaproxy-addr internal://redpanda-1:8082,external://localhost:28082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:28081
+      - --rpc-addr redpanda-1:33145
+      - --advertise-rpc-addr redpanda-1:33145
+    ports: ["29092:29092", "29644:9644"]
+    volumes: [redpanda-1:/var/lib/redpanda/data]
+    depends_on: [redpanda-0]
+
+  redpanda-2:
+    <<: *redpanda-common
+    container_name: redpanda-2
+    profiles: [ha]
+    command:
+      - redpanda start
+      - --mode dev-container
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --node-id 2
+      - --seeds redpanda-0:33145
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:39092
+      - --advertise-kafka-addr internal://redpanda-2:9092,external://localhost:39092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:38082
+      - --advertise-pandaproxy-addr internal://redpanda-2:8082,external://localhost:38082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:38081
+      - --rpc-addr redpanda-2:33145
+      - --advertise-rpc-addr redpanda-2:33145
+    ports: ["39092:39092", "39644:9644"]
+    volumes: [redpanda-2:/var/lib/redpanda/data]
+    depends_on: [redpanda-0]
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:v3.2.1
+    container_name: console
+    networks: [tidemark]
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["redpanda-0:9092"]
+        schemaRegistry:
+          enabled: true
+          urls: ["http://redpanda-0:8081"]
+        redpanda:
+          adminApi:
+            enabled: true
+            urls: ["http://redpanda-0:9644"]
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    ports: ["8080:8080"]
+    depends_on: [redpanda-0]
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- storage
+  # Official MinIO images are no longer published; this is the last frozen
+  # community build, used for local development only. Cloud uses S3.
+  minio:
+    image: bitnamilegacy/minio:2025.7.23
+    container_name: minio
+    networks: [tidemark]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tidemark}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-tidemark-local-dev}
+      MINIO_DEFAULT_BUCKETS: ${LAKE_BUCKET:-lake},${CHECKPOINT_BUCKET:-checkpoints}
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [minio:/bitnami/minio/data]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    networks: [tidemark]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tidemark}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tidemark-local-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-iceberg_catalog}
+    ports: ["5433:5432"]
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- query
+  trino:
+    image: trinodb/trino:477
+    container_name: trino
+    profiles: [query]
+    networks: [tidemark]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-tidemark}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-tidemark-local-dev}
+      POSTGRES_USER: ${POSTGRES_USER:-tidemark}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tidemark-local-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-iceberg_catalog}
+      LAKE_BUCKET: ${LAKE_BUCKET:-lake}
+    ports: ["8088:8080"]
+    volumes:
+      - ./deploy/trino/catalog:/etc/trino/catalog:ro
+      - ./deploy/trino/jvm.config:/etc/trino/jvm.config:ro
+    depends_on:
+      minio: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8
+    container_name: clickhouse
+    profiles: [query]
+    networks: [tidemark]
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-tidemark}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-tidemark-local-dev}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports: ["8123:8123", "19000:9000", "9363:9363"]
+    volumes:
+      - clickhouse:/var/lib/clickhouse
+      - ./deploy/clickhouse/prometheus.xml:/etc/clickhouse-server/config.d/prometheus.xml:ro
+      - ./deploy/clickhouse/low-memory.xml:/etc/clickhouse-server/config.d/low-memory.xml:ro
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- observability
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
+    networks: [tidemark]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    ports: ["9090:9090"]
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus:/prometheus
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: grafana
+    networks: [tidemark]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-tidemark-local-dev}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    ports: ["3000:3000"]
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana:/var/lib/grafana
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+networks:
+  tidemark:
+    name: tidemark
+
+volumes:
+  redpanda-0:
+  redpanda-1:
+  redpanda-2:
+  minio:
+  postgres:
+  clickhouse:
+  prometheus:
+  grafana:
