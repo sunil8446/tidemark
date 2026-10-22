@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package tidemark.v1;
+
+option go_package = "tidemark/gen/go/tidemark/v1;tidemarkv1";
+option java_multiple_files = true;
+option java_package = "dev.tidemark.proto.v1";
+
+// Evolution rules (registry compatibility = BACKWARD):
+//   * never renumber or reuse a field number; reserve removed ones
+//   * new fields are optional by construction in proto3
+//   * enum value 0 is always UNSPECIFIED
+
+enum Venue {
+  VENUE_UNSPECIFIED = 0;
+  VENUE_COINBASE = 1;
+  VENUE_KRAKEN = 2;
+}
+
+enum Side {
+  SIDE_UNSPECIFIED = 0;
+  SIDE_BUY = 1;
+  SIDE_SELL = 2;
+}
+
+enum Source {
+  SOURCE_UNSPECIFIED = 0;
+  SOURCE_WS = 1;      // live WebSocket
+  SOURCE_REST = 2;    // REST backfill after a detected gap
+  SOURCE_REPLAY = 3;  // replay harness
+}
+
+// One executed trade. Topic trades.v1, key "venue:product_id".
+message Trade {
+  Venue venue = 1;
+  string product_id = 2;   // normalised, e.g. "BTC-USD"
+  uint64 trade_id = 3;     // venue sequence, increasing per product
+  string price = 4;        // exact decimal text
+  string size = 5;         // exact decimal text
+  Side taker_side = 6;     // normalised: Coinbase reports maker side, Kraken taker side
+  int64 event_ts_ns = 7;   // exchange timestamp, unix nanos
+  int64 recv_ts_ns = 8;    // when the ingestor received it
+  Source source = 9;
+  string ingest_id = 10;   // ingestor instance that produced it
+  bool from_snapshot = 11; // replayed by the venue on subscribe (Kraken snapshot, Coinbase last_match), not live
+}
+
+message BookLevel {
+  string price = 1;
+  string qty = 2;          // "0" removes the level
+}
+
+// Order book snapshot or incremental update. Topic book.v1, key "venue:product_id".
+message BookUpdate {
+  Venue venue = 1;
+  string product_id = 2;
+  bool is_snapshot = 3;
+  repeated BookLevel bids = 4;
+  repeated BookLevel asks = 5;
+  uint32 checksum = 6;     // venue-supplied CRC32 (Kraken)
+  bool checksum_ok = 7;    // validated by the ingestor against its local book
+  int64 event_ts_ns = 8;
+  int64 recv_ts_ns = 9;
+  uint64 seq = 10;         // per-product ingestor sequence, for ordering checks
+  Source source = 11;
+}
+
+enum GapKind {
+  GAP_KIND_UNSPECIFIED = 0;
+  GAP_KIND_TRADE_ID_JUMP = 1;       // trade_id skipped forward
+  GAP_KIND_HEARTBEAT_AHEAD = 2;     // heartbeat last_trade_id beyond what we've seen
+  GAP_KIND_CHECKSUM_MISMATCH = 3;   // local book diverged from venue checksum
+}
+
+enum GapStatus {
+  GAP_STATUS_UNSPECIFIED = 0;
+  GAP_STATUS_DETECTED = 1;
+  GAP_STATUS_RECOVERED = 2;
+  GAP_STATUS_UNRECOVERABLE = 3;
+  GAP_STATUS_ABSENT_AT_SOURCE = 4;  // REST has moved past the range and the ids are not there
+}
+
+// Lifecycle of one gap. Topic gaps.v1, key "venue:product_id".
+// A gap emits DETECTED, then exactly one terminal status with the same gap_id.
+message GapEvent {
+  string gap_id = 1;
+  Venue venue = 2;
+  string product_id = 3;
+  GapKind kind = 4;
+  GapStatus status = 5;
+  uint64 first_missing_trade_id = 6;  // inclusive
+  uint64 last_missing_trade_id = 7;   // inclusive
+  uint64 recovered_count = 8;
+  int64 detected_ts_ns = 9;
+  int64 resolved_ts_ns = 10;
+  string detail = 11;
+}

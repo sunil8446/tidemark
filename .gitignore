@@ -10,8 +10,8 @@
 *.ndjson.gz
 
 # Go
-/ingest/bin/
-/replay/bin/
+/bin/
+
 *.test
 coverage.out
 

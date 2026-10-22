@@ -37,3 +37,25 @@ topics: ## Create Kafka topics (RF follows broker count)
 
 smoke: ## Check every running service answers
 	./scripts/smoke.sh
+
+# ---------------------------------------------------------------- Week 1: ingestion
+.PHONY: build test test-integration ingest replay gen
+
+gen: ## Regenerate Protobuf code
+	PATH="$$PATH:$$(go env GOPATH)/bin" buf lint && PATH="$$PATH:$$(go env GOPATH)/bin" buf generate
+
+build: ## Build ingest and replay binaries into ./bin
+	go build -o bin/ingest ./ingest/cmd/ingest
+	go build -o bin/replay ./replay/cmd/replay
+
+test: ## Unit tests (race detector on)
+	go test -race ./...
+
+test-integration: ## Integration tests against a throwaway Redpanda container
+	go test -tags integration -count=1 ./ingest/sink/
+
+ingest: build ## Run the live ingestor against the local stack
+	./bin/ingest --debug-endpoints
+
+replay: build ## Replay recordings: make replay FILES="~/.tidemark-data/recordings/*.zst" SPEED=10
+	./bin/replay --speed $(or $(SPEED),1) $(FILES)

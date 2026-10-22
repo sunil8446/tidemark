@@ -1,0 +1,7 @@
+version: v2
+modules:
+  - path: schemas
+lint:
+  use: [STANDARD]
+breaking:
+  use: [WIRE_JSON]
