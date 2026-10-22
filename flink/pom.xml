@@ -78,10 +78,12 @@
       <artifactId>hadoop-client-runtime</artifactId>
       <version>${hadoop.version}</version>
     </dependency>
+    <!-- JDBC drivers must live in Flink's lib/ (parent classloader); see docker-compose.yml. -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <version>42.7.7</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>

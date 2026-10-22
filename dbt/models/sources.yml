@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: market
+    description: Raw tables written by the Flink lakehouse job (exactly-once, deduplicated on venue/product/trade_id).
+    database: iceberg
+    schema: market
+    tables:
+      - name: raw_trades
+        loaded_at_field: event_ts
+        freshness:
+          warn_after: { count: 10, period: minute }
+          error_after: { count: 60, period: minute }
+      - name: book_deltas
+      - name: gap_events

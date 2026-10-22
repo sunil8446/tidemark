@@ -1,0 +1,25 @@
+name: tidemark
+version: "0.2.0"
+profile: tidemark
+config-version: 2
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+# Build output and logs go outside the synced repo folder (see Makefile:
+# DBT_TARGET_PATH / DBT_LOG_PATH).
+
+models:
+  tidemark:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+      +properties:
+        format: "'PARQUET'"

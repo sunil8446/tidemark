@@ -1,0 +1,110 @@
+version: 2
+
+models:
+  - name: fct_ohlcv_1m
+    description: 1-minute OHLCV bars recomputed from the lakehouse.
+    config:
+      contract: { enforced: true }
+    data_tests:
+      - ohlc_invariant
+      - unique_combination:
+          arguments:
+            columns: [venue, product_id, bar_start]
+    columns:
+      - { name: venue, data_type: varchar, constraints: [{ type: not_null }] }
+      - { name: product_id, data_type: varchar, constraints: [{ type: not_null }] }
+      - { name: bar_start, data_type: "timestamp(6) with time zone", constraints: [{ type: not_null }] }
+      - { name: open, data_type: "decimal(28,12)" }
+      - { name: high, data_type: "decimal(28,12)" }
+      - { name: low, data_type: "decimal(28,12)" }
+      - { name: close, data_type: "decimal(28,12)" }
+      - { name: volume, data_type: "decimal(38,12)" }
+      - { name: notional, data_type: "decimal(38,24)" }
+      - { name: vwap, data_type: "decimal(28,12)" }
+      - { name: trade_count, data_type: bigint }
+
+  - name: fct_daily_venue_stats
+    description: Daily trading summary per venue and product.
+    config:
+      contract: { enforced: true }
+    data_tests:
+      - ohlc_invariant
+      - unique_combination:
+          arguments:
+            columns: [trade_date, venue, product_id]
+    columns:
+      - { name: trade_date, data_type: date, constraints: [{ type: not_null }] }
+      - { name: venue, data_type: varchar, constraints: [{ type: not_null }] }
+      - { name: product_id, data_type: varchar, constraints: [{ type: not_null }] }
+      - { name: trade_count, data_type: bigint }
+      - { name: volume, data_type: "decimal(38,12)" }
+      - { name: notional, data_type: "decimal(38,24)" }
+      - { name: vwap, data_type: "decimal(28,12)" }
+      - { name: open, data_type: "decimal(28,12)" }
+      - { name: high, data_type: "decimal(28,12)" }
+      - { name: low, data_type: "decimal(28,12)" }
+      - { name: close, data_type: "decimal(28,12)" }
+      - { name: buy_volume_share, data_type: double }
+      - { name: rest_backfill_share, data_type: double }
+      - { name: first_trade_ts, data_type: "timestamp(6) with time zone" }
+      - { name: last_trade_ts, data_type: "timestamp(6) with time zone" }
+
+  - name: fct_gap_ledger
+    description: One row per gap the ingestor detected, with its outcome and recovery time.
+    config:
+      contract: { enforced: true }
+    columns:
+      - name: gap_id
+        data_type: varchar
+        constraints: [{ type: not_null }]
+        data_tests: [unique]
+      - { name: venue, data_type: varchar }
+      - { name: product_id, data_type: varchar }
+      - { name: kind, data_type: varchar }
+      - name: status
+        data_type: varchar
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [open, recovered, absent_at_source, unrecoverable]
+      - { name: first_missing_trade_id, data_type: bigint }
+      - { name: last_missing_trade_id, data_type: bigint }
+      - { name: span, data_type: bigint }
+      - { name: recovered_count, data_type: bigint }
+      - { name: detected_ts, data_type: "timestamp(6) with time zone" }
+      - { name: resolved_ts, data_type: "timestamp(6) with time zone" }
+      - { name: recovery_seconds, data_type: double }
+      - { name: detail, data_type: varchar }
+
+  - name: fct_data_quality_daily
+    description: Completeness and repair activity per day, venue and product.
+    config:
+      contract: { enforced: true }
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [trade_date, venue, product_id]
+    columns:
+      - { name: trade_date, data_type: date, constraints: [{ type: not_null }] }
+      - { name: venue, data_type: varchar }
+      - { name: product_id, data_type: varchar }
+      - { name: expected_ids, data_type: bigint }
+      - { name: present_ids, data_type: bigint }
+      - { name: missing_ids, data_type: bigint }
+      - name: duplicate_rows
+        data_type: bigint
+        description: Rows in raw_trades beyond one per trade id. Must be 0 if Flink dedup works.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0]
+                quote: false
+      - { name: rest_ids, data_type: bigint }
+      - name: completeness
+        data_type: double
+      - { name: gaps_detected, data_type: bigint }
+      - { name: gaps_recovered, data_type: bigint }
+      - { name: gaps_unrecovered, data_type: bigint }
+      - { name: checksum_resyncs, data_type: bigint }
+      - { name: book_messages, data_type: bigint }
+      - { name: checksum_failures, data_type: bigint }

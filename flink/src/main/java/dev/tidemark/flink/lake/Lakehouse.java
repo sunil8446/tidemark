@@ -56,7 +56,9 @@ public final class Lakehouse {
       Types.NestedField.optional(10, "ingest_id", Types.StringType.get()),
       Types.NestedField.optional(11, "from_snapshot", Types.BooleanType.get()),
       Types.NestedField.optional(12, "kafka_partition", Types.IntegerType.get()),
-      Types.NestedField.optional(13, "kafka_offset", Types.LongType.get()));
+      Types.NestedField.optional(13, "kafka_offset", Types.LongType.get()),
+      // Added in the Week 2 schema-evolution drill; existing tables gain it via ensureColumns.
+      Types.NestedField.optional(14, "venue_sequence", Types.LongType.get()));
 
   public static final Schema BOOK_DELTAS = new Schema(
       Types.NestedField.required(1, "venue", Types.StringType.get()),
@@ -119,6 +121,30 @@ public final class Lakehouse {
         // created concurrently
       }
     }
+    ensureColumns(catalog.loadTable(id), schema);
     return TableLoader.fromCatalog(loader, id);
+  }
+
+  /**
+   * Schema evolution: append any optional top-level column the code knows and
+   * the table lacks. This is a metadata-only commit; no data file is rewritten,
+   * and existing rows read the new column as null.
+   */
+  static void ensureColumns(Table table, Schema wanted) {
+    var update = table.updateSchema();
+    boolean changed = false;
+    for (Types.NestedField f : wanted.columns()) {
+      if (table.schema().findField(f.name()) == null) {
+        if (f.isRequired()) {
+          throw new IllegalStateException("cannot add required column " + f.name() + " to " + table.name());
+        }
+        update.addColumn(f.name(), f.type(), f.doc());
+        changed = true;
+        System.out.println("schema evolution: adding column " + f.name() + " to " + table.name());
+      }
+    }
+    if (changed) {
+      update.commit();
+    }
   }
 }

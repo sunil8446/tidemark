@@ -40,6 +40,7 @@ func (f *Feed) SubscribeMessages() [][]byte {
 
 type message struct {
 	Type        string    `json:"type"`
+	Sequence    uint64    `json:"sequence"`
 	TradeID     uint64    `json:"trade_id"`
 	LastTradeID uint64    `json:"last_trade_id"`
 	ProductID   string    `json:"product_id"`
@@ -59,16 +60,17 @@ func (f *Feed) Parse(frame []byte, recv time.Time) ([]venue.Event, error) {
 	switch m.Type {
 	case "match", "last_match":
 		return []venue.Event{{Trade: &pb.Trade{
-			Venue:        pb.Venue_VENUE_COINBASE,
-			ProductId:    m.ProductID,
-			TradeId:      m.TradeID,
-			Price:        m.Price,
-			Size:         m.Size,
-			TakerSide:    takerSide(m.Side),
-			EventTsNs:    m.Time.UnixNano(),
-			RecvTsNs:     recv.UnixNano(),
-			Source:       pb.Source_SOURCE_WS,
-			FromSnapshot: m.Type == "last_match",
+			Venue:         pb.Venue_VENUE_COINBASE,
+			ProductId:     m.ProductID,
+			TradeId:       m.TradeID,
+			Price:         m.Price,
+			Size:          m.Size,
+			TakerSide:     takerSide(m.Side),
+			EventTsNs:     m.Time.UnixNano(),
+			RecvTsNs:      recv.UnixNano(),
+			Source:        pb.Source_SOURCE_WS,
+			FromSnapshot:  m.Type == "last_match",
+			VenueSequence: m.Sequence,
 		}}}, nil
 	case "heartbeat":
 		return []venue.Event{{Heartbeat: &venue.Heartbeat{Product: m.ProductID, LastTradeID: m.LastTradeID}}}, nil

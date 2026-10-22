@@ -40,6 +40,7 @@ public final class Deserializers {
     e.source = enumName(t.getSource(), "SOURCE_");
     e.ingestId = t.getIngestId();
     e.fromSnapshot = t.getFromSnapshot();
+    e.venueSequence = t.getVenueSequence();
     e.kafkaPartition = partition;
     e.kafkaOffset = offset;
     return e;

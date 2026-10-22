@@ -218,8 +218,12 @@ services:
         restart-strategy.type: exponential-delay
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249
-    volumes:
+        # JDBC's DriverManager caches drivers per classloader; load the Postgres
+        # driver from lib/ so job restarts do not hit "No suitable driver".
+        classloader.parent-first-patterns.additional: org.postgresql
+    volumes: &flink-volumes
       - ${HOME}/.tidemark-data/build/flink:/opt/flink/usrlib:ro
+      - ${HOME}/.tidemark-data/build/flink-lib/postgresql-42.7.7.jar:/opt/flink/lib/postgresql-42.7.7.jar:ro
     depends_on:
       minio: { condition: service_healthy }
       postgres: { condition: service_healthy }
@@ -232,9 +236,32 @@ services:
     networks: [tidemark]
     command: taskmanager
     environment: *flink-env
-    volumes:
-      - ${HOME}/.tidemark-data/build/flink:/opt/flink/usrlib:ro
+    volumes: *flink-volumes
     depends_on: [jobmanager]
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- orchestration
+  airflow:
+    image: tidemark-airflow:0.2
+    build: { context: ., dockerfile: airflow/Dockerfile }
+    container_name: airflow
+    profiles: [orchestrate]
+    networks: [tidemark]
+    command: standalone
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-tidemark}:${POSTGRES_PASSWORD:-tidemark-local-dev}@postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      # Local development only: every user is admin, no login.
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+      AIRFLOW__API__PORT: "8080"
+    ports: ["8090:8080"]
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./dbt:/opt/tidemark/dbt:ro
+    depends_on:
+      postgres: { condition: service_healthy }
     restart: unless-stopped
 
   # ---------------------------------------------------------------- observability

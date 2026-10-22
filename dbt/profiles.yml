@@ -1,0 +1,13 @@
+tidemark:
+  target: local
+  outputs:
+    local:
+      type: trino
+      method: none
+      user: "{{ env_var('TRINO_USER', 'tidemark') }}"
+      host: "{{ env_var('TRINO_HOST', 'localhost') }}"
+      port: "{{ env_var('TRINO_PORT', '8088') | int }}"
+      http_scheme: http
+      catalog: iceberg
+      schema: analytics
+      threads: 4

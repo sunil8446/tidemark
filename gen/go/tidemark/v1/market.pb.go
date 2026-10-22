@@ -290,8 +290,9 @@ type Trade struct {
 	EventTsNs     int64                  `protobuf:"varint,7,opt,name=event_ts_ns,json=eventTsNs,proto3" json:"event_ts_ns,omitempty"`                     // exchange timestamp, unix nanos
 	RecvTsNs      int64                  `protobuf:"varint,8,opt,name=recv_ts_ns,json=recvTsNs,proto3" json:"recv_ts_ns,omitempty"`                        // when the ingestor received it
 	Source        Source                 `protobuf:"varint,9,opt,name=source,proto3,enum=tidemark.v1.Source" json:"source,omitempty"`
-	IngestId      string                 `protobuf:"bytes,10,opt,name=ingest_id,json=ingestId,proto3" json:"ingest_id,omitempty"`              // ingestor instance that produced it
-	FromSnapshot  bool                   `protobuf:"varint,11,opt,name=from_snapshot,json=fromSnapshot,proto3" json:"from_snapshot,omitempty"` // replayed by the venue on subscribe (Kraken snapshot, Coinbase last_match), not live
+	IngestId      string                 `protobuf:"bytes,10,opt,name=ingest_id,json=ingestId,proto3" json:"ingest_id,omitempty"`                 // ingestor instance that produced it
+	FromSnapshot  bool                   `protobuf:"varint,11,opt,name=from_snapshot,json=fromSnapshot,proto3" json:"from_snapshot,omitempty"`    // replayed by the venue on subscribe (Kraken snapshot, Coinbase last_match), not live
+	VenueSequence uint64                 `protobuf:"varint,12,opt,name=venue_sequence,json=venueSequence,proto3" json:"venue_sequence,omitempty"` // added in the Week 2 schema-evolution drill: Coinbase feed sequence; 0 if none
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -401,6 +402,13 @@ func (x *Trade) GetFromSnapshot() bool {
 		return x.FromSnapshot
 	}
 	return false
+}
+
+func (x *Trade) GetVenueSequence() uint64 {
+	if x != nil {
+		return x.VenueSequence
+	}
+	return 0
 }
 
 type BookLevel struct {
@@ -710,7 +718,7 @@ var File_tidemark_v1_market_proto protoreflect.FileDescriptor
 
 const file_tidemark_v1_market_proto_rawDesc = "" +
 	"\n" +
-	"\x18tidemark/v1/market.proto\x12\vtidemark.v1\"\xf4\x02\n" +
+	"\x18tidemark/v1/market.proto\x12\vtidemark.v1\"\x9b\x03\n" +
 	"\x05Trade\x12(\n" +
 	"\x05venue\x18\x01 \x01(\x0e2\x12.tidemark.v1.VenueR\x05venue\x12\x1d\n" +
 	"\n" +
@@ -726,7 +734,8 @@ const file_tidemark_v1_market_proto_rawDesc = "" +
 	"\x06source\x18\t \x01(\x0e2\x13.tidemark.v1.SourceR\x06source\x12\x1b\n" +
 	"\tingest_id\x18\n" +
 	" \x01(\tR\bingestId\x12#\n" +
-	"\rfrom_snapshot\x18\v \x01(\bR\ffromSnapshot\"3\n" +
+	"\rfrom_snapshot\x18\v \x01(\bR\ffromSnapshot\x12%\n" +
+	"\x0evenue_sequence\x18\f \x01(\x04R\rvenueSequence\"3\n" +
 	"\tBookLevel\x12\x14\n" +
 	"\x05price\x18\x01 \x01(\tR\x05price\x12\x10\n" +
 	"\x03qty\x18\x02 \x01(\tR\x03qty\"\x88\x03\n" +

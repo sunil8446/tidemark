@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: stg_trades
+    description: Deduplicated trades with notional, one row per venue/product/trade_id.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [venue, product_id, trade_id]
+      - monotonic_trade_id:
+          arguments:
+            tolerance_seconds: 2
+    columns:
+      - name: venue
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [coinbase, kraken]
+      - name: trade_id
+        data_tests: [not_null]
+      - name: price
+        data_tests: [not_null]
+      - name: taker_side
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [buy, sell]
+      - name: source
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [ws, rest, replay]
+
+  - name: stg_gap_events
+    columns:
+      - name: status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [detected, recovered, absent_at_source, unrecoverable]
+
+  - name: stg_book_messages
+    columns:
+      - name: kafka_offset
+        data_tests: [not_null]

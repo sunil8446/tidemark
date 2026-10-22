@@ -43,6 +43,7 @@ message Trade {
   Source source = 9;
   string ingest_id = 10;   // ingestor instance that produced it
   bool from_snapshot = 11; // replayed by the venue on subscribe (Kraken snapshot, Coinbase last_match), not live
+  uint64 venue_sequence = 12; // added in the Week 2 schema-evolution drill: Coinbase feed sequence; 0 if none
 }
 
 message BookLevel {

@@ -40,7 +40,7 @@ public final class Rows {
     return GenericRowData.of(
         str(t.venue), str(t.productId), t.tradeId, dec(t.price), dec(t.size), str(t.takerSide),
         ts(t.eventTsUs), ts(t.recvTsUs), str(t.source), str(t.ingestId), t.fromSnapshot,
-        t.kafkaPartition, t.kafkaOffset);
+        t.kafkaPartition, t.kafkaOffset, t.venueSequence == 0 ? null : t.venueSequence);
   }
 
   public static RowData book(BookLevelEvent b) {

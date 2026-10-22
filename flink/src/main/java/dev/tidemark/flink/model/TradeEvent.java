@@ -18,6 +18,7 @@ public class TradeEvent {
   public String source;
   public String ingestId;
   public boolean fromSnapshot;
+  public long venueSequence; // 0 = not provided
   public int kafkaPartition;
   public long kafkaOffset;
 

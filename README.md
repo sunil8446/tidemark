@@ -2,7 +2,7 @@
 
 Real-time crypto market surveillance: live trade and order-book feeds from Coinbase and Kraken, provable data completeness under failure, manipulation-pattern detection, an Iceberg lakehouse, and an AI investigator measured against labeled ground truth.
 
-> **Status:** v0.1 (Week 1): live ingestion with gap detection and repair. Every number below links to the script or panel that produced it.
+> **Status:** Week 2 in progress (v0.1 tag pending its 24 h run): ingestion with gap repair, plus an exactly-once Flink → Iceberg lakehouse, ClickHouse hot aggregates, dbt marts and hourly reconciliation. Every number below links to the script or panel that produced it.
 
 ## What works today
 
@@ -12,6 +12,11 @@ Real-time crypto market surveillance: live trade and order-book feeds from Coinb
 - **Fault injection** (`POST /debug/drop/<venue>?for=20s`, `/debug/reconnect/<venue>`) to prove recovery on demand.
 - **Record and replay.** Raw frames go to hourly zstd NDJSON files and replay at N× speed through the same parsers.
 - **Kafka audit** (`go run ./ingest/cmd/audit`): checks `trades.v1` itself for missing and duplicate ids.
+- **Exactly-once lakehouse.** Flink dedups on (venue, product, trade_id) in checkpointed state and commits to Iceberg (`market.raw_trades`, `book_deltas`, `gap_events`) only when a checkpoint completes. Hidden partitioning on `day(event_ts)` and `venue`.
+- **Hot aggregates.** 1 s and 1 m OHLCV bars, rolling 5 m VWAP and an as-of Coinbase–Kraken spread in ClickHouse `ReplacingMergeTree`. Late REST-backfilled trades re-fire their windows and upsert the corrected bar.
+- **dbt on Trino.** Staging, intermediate and marts with enforced contracts; custom tests for monotonic trade ids and the OHLC invariant (28 / 28 passing).
+- **Reconciliation** (`make reconcile`, hourly in Airflow): finds missing trade-id runs in Iceberg, re-fetches them over REST, and records every run in `iceberg.ops.reconciliation_runs`.
+- **Iceberg maintenance** in Airflow: `optimize`, `expire_snapshots`, `remove_orphan_files`, measured before and after.
 
 ## Measured so far
 
@@ -21,6 +26,10 @@ Real-time crypto market surveillance: live trade and order-book feeds from Coinb
 | Kafka completeness after injection | 1,819 / 1,819 ids, 0 duplicates | 6 products, ~7 min window | [bench/gaps.md](bench/gaps.md) |
 | Kraken book checksums | 3,336 / 3,336 passed | 40 s live dry run | [ADR-0002](docs/adr/0002-go-for-ingestion.md) |
 | Replay → Kafka throughput | ~125k records/s acked | 1 broker, acks=all, M2 laptop | [bench/throughput.md](bench/throughput.md) |
+| Lakehouse completeness after reconciliation | 99.5992% → **100%** (82 / 82 ids refetched), 0 duplicates | 3 h window, 20,460 ids | `iceberg.ops.reconciliation_runs` |
+| Exactly-once across savepoint upgrade + TaskManager kill | 40,492 / 40,492 ids, 0 duplicates | 1 h window | [docs/schema-evolution.md](docs/schema-evolution.md) |
+| Flink checkpoint duration | ~74 ms lakehouse, ~216 ms analytics | live load | Prometheus `flink_jobmanager_job_lastCheckpointDuration` |
+| Compaction | 98 → 2 files on `raw_trades` | 40 min of 30–60 s commits | [bench/compaction.md](bench/compaction.md) |
 | 24 h unattended gap report | *running* | started 2026-10-22 07:58 UTC | [bench/gaps.md](bench/gaps.md) |
 
 ## Architecture (target)
@@ -49,6 +58,12 @@ make test        # unit tests, race detector on
 make test-integration   # Kafka round trip + schema rules in a throwaway Redpanda
 make replay FILES="$HOME/.tidemark-data/recordings/*.zst" SPEED=10
 python3 bench/gap_report.py --window 24h   # writes bench/gaps.md
+
+make up-orchestrate   # + Trino, ClickHouse, Flink, Airflow
+make flink-build && make flink-submit                                  # lakehouse job
+make flink-submit JOB=dev.tidemark.flink.AnalyticsJob                  # bars / VWAP / spread
+make dbt-build        # marts + tests
+make reconcile        # completeness check + REST repair
 ```
 
 Grafana dashboard **Tidemark · Ingestion** is provisioned automatically.
@@ -62,6 +77,8 @@ Grafana dashboard **Tidemark · Ingestion** is provisioned automatically.
 | Postgres (Iceberg JDBC catalog) | `localhost:5433` | |
 | Trino | http://localhost:8088 | `query` profile |
 | ClickHouse | http://localhost:8123 | `query` profile |
+| Flink | http://localhost:8081 | `stream` profile |
+| Airflow | http://localhost:8090 | `orchestrate` profile; no login (local only) |
 | Prometheus | http://localhost:9090 | |
 | Grafana | http://localhost:3000 | anonymous viewer, admin password in `.env` |
 
