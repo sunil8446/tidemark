@@ -18,7 +18,10 @@ fetch_alert ──► investigate ──► conclude ──► check_grounding �
 export UV_PROJECT_ENVIRONMENT=~/.tidemark-data/venvs/agent
 uv sync && uv run pytest -q                       # scripted model, no API calls
 uv run tidemark-investigate --alert-id <id>       # needs ANTHROPIC_API_KEY (or `ant auth login`)
+uv run tidemark-investigate --alert-id <id> --backend cli   # on a Claude plan via `claude -p` (`claude auth login`)
 uv run python -m investigator.review              # approve/reject page on :8765
 ```
 
 Evaluation: [`evals/run_eval.py`](../evals/run_eval.py) (triage accuracy, groundedness, judge pass rate, cost, latency); CI replays recorded tool results so only the model is live.
+
+**Two backends, one investigator.** `--backend api` calls the Claude API (prompt caching, refusal fallbacks, exact dollar cost). `--backend cli` runs the same prompts, MCP tools and `Verdict` schema through the Claude Code CLI ([`investigator/claude_cli.py`](investigator/claude_cli.py)), which draws on a Claude subscription's usage limits instead of an API key. Tool calls and results are read back from the CLI's `stream-json` events, so grounding is checked against exactly what the model saw; dollar figures on this backend are API-equivalent estimates from token counts.

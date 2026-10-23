@@ -2,13 +2,14 @@
 
     uv run python evals/run_eval.py --set evals/eval_set.jsonl [--limit N] [--concurrency 4]
     uv run python evals/run_eval.py --set evals/ci_subset.jsonl --fixtures evals/fixtures --gate
+    uv run python evals/run_eval.py --set evals/ci_subset.jsonl --backend cli   # on a Claude plan, via `claude -p`
 
 Metrics (written to ~/.tidemark-data/eval/agent-<ts>.json and printed as markdown):
   triage accuracy     verdict.classification vs the label (injected -> escalate; real -> hand label)
   groundedness        share of narrative numbers traceable to a tool result (automated)
   claim support       share of cited claims found in the cited tool call's output
   judge pass rate     LLM-as-judge rubric; agreement with human grades reported separately
-  cost / latency      per investigation, from API usage
+  cost / latency      per investigation, from API usage (API-equivalent estimate with --backend cli)
 
 --record saves every tool result to --fixtures so CI can replay without the data stack.
 --gate exits non-zero if accuracy or groundedness falls below the thresholds.
@@ -28,7 +29,8 @@ from pathlib import Path
 import anthropic
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agent"))
-from investigator.graph import build, investigate_alert  # noqa: E402
+from investigator.claude_cli import ClaudeCli  # noqa: E402
+from investigator.graph import EFFORT, MODEL, build, investigate_alert  # noqa: E402
 from investigator.tools import FixtureTools, McpTools, RecordingTools  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -50,9 +52,12 @@ async def one(client, app_factory, item, sem, fixtures_dir, record):
                 log = [{"id": c["id"], "name": c["name"], "input": c["input"],
                         "output": await tools.call(c["name"], c["input"])} for c in out["tool_calls"]]
                 alert = json.loads(await tools.call("get_alert", {"alert_id": item["alert_id"], "stream": item["stream"]}))
-                g, resp = await judge.grade(client, alert, log, out["verdict"])
-                out["judge"] = g.model_dump()
-                out["judge_usage"] = {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens}
+                try:
+                    g, resp = await judge.grade(client, alert, log, out["verdict"])
+                    out["judge"] = g.model_dump()
+                    out["judge_usage"] = {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens}
+                except Exception as e:  # a failed grade is reported, not fatal to the run
+                    out["judge_error"] = str(e)[:300]
             out["label"] = item.get("label")
             out["source"] = item.get("source")
             return out
@@ -95,9 +100,11 @@ async def main() -> int:
     ap.add_argument("--fixtures", type=Path)
     ap.add_argument("--record", action="store_true")
     ap.add_argument("--gate", action="store_true")
+    ap.add_argument("--backend", choices=["api", "cli"], default="api",
+                    help="api: Claude API key; cli: the Claude Code CLI on a Claude subscription")
     a = ap.parse_args()
     items = [json.loads(l) for l in open(a.set) if l.strip()][: a.limit]
-    client = anthropic.AsyncAnthropic()
+    client = ClaudeCli(MODEL, EFFORT) if a.backend == "cli" else anthropic.AsyncAnthropic()
 
     class Live:
         def __init__(self, item):
@@ -128,6 +135,8 @@ async def main() -> int:
     sem = asyncio.Semaphore(a.concurrency)
     results = await asyncio.gather(*(one(client, factory, it, sem, a.fixtures, a.record) for it in items))
     summary = summarize(results)
+    summary["backend"] = a.backend
+    summary["model"] = MODEL
     out = Path(os.path.expanduser("~/.tidemark-data/eval")) / f"agent-{int(time.time())}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"summary": summary, "results": results}, indent=1, default=str))

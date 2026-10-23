@@ -8,9 +8,11 @@ grades of the same cases (calibration) before they are trusted.
 from __future__ import annotations
 
 import json
-from typing import Literal
+from types import SimpleNamespace
 
 import anthropic
+from investigator import claude_cli
+from investigator.claude_cli import ClaudeCli
 from pydantic import BaseModel, Field
 
 JUDGE_MODEL = "claude-opus-5-5"
@@ -43,13 +45,19 @@ class Grade(BaseModel):
     reason: str = Field(description="Two sentences: the main strength and the main weakness.")
 
 
-async def grade(client: anthropic.AsyncAnthropic, alert: dict, tool_log: list[dict], verdict: dict) -> tuple[Grade, object]:
+async def grade(client, alert: dict, tool_log: list[dict], verdict: dict) -> tuple[Grade, object]:
+    """`client` is an AsyncAnthropic, or a ClaudeCli to grade on a Claude subscription."""
     case = {
         "alert": alert,
         "tool_results": [{"id": t["id"], "tool": t["name"], "input": t["input"], "output": t["output"][:6000]}
                          for t in tool_log],
         "case_file": verdict,
     }
+    if isinstance(client, ClaudeCli):
+        events = await client.run(json.dumps(case, default=str), system=RUBRIC, tools=[],
+                                  json_schema=Grade.model_json_schema(), effort="low")
+        return Grade.model_validate(claude_cli.structured_output(events)), SimpleNamespace(
+            usage=claude_cli.usage_of(events))
     resp = await client.beta.messages.parse(
         model=JUDGE_MODEL, max_tokens=4000,
         system=[{"type": "text", "text": RUBRIC, "cache_control": {"type": "ephemeral"}}],

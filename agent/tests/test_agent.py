@@ -131,3 +131,69 @@ def test_cost_uses_cache_rates():
     u.add("claude-opus-5-5", usage(i=1_000_000, o=0))
     u.add("claude-opus-5-5", usage(i=0, o=0, cr=1_000_000))
     assert u.cost_usd() == 4.0 + 0.2
+
+
+FAKE_CLAUDE = r'''#!/usr/bin/env python3
+"""Stands in for `claude -p --output-format stream-json`: logs its argv, emits scripted events."""
+import json, os, sys
+argv = sys.argv[1:]
+sys.stdin.read()
+with open(os.environ["FAKE_CLAUDE_LOG"], "a") as f:
+    f.write(json.dumps(argv) + "\n")
+usage = {"input_tokens": 100, "output_tokens": 50, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}
+emit = lambda e: print(json.dumps(e))
+emit({"type": "system", "subtype": "init"})
+if "--json-schema" in argv:
+    emit({"type": "result", "subtype": "success", "is_error": False, "usage": usage,
+          "structured_output": json.loads(os.environ["FAKE_CLAUDE_VERDICT"])})
+else:
+    emit({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_cli1",
+          "name": "mcp__tidemark__query_trades", "input": {"venue": "kraken"}}]}})
+    emit({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "toolu_cli1",
+          "content": [{"type": "text", "text": os.environ["FAKE_CLAUDE_TRADES"]}]}]}})
+    emit({"type": "assistant", "message": {"content": [{"type": "text", "text": "Found 37 trades."}]}})
+    emit({"type": "result", "subtype": "success", "is_error": False, "usage": usage, "result": "Found 37 trades."})
+'''
+
+
+async def test_cli_backend_reads_tool_calls_from_stream_json(tmp_path, monkeypatch):
+    from investigator.claude_cli import ClaudeCli
+
+    fake = tmp_path / "claude"
+    fake.write_text(FAKE_CLAUDE)
+    fake.chmod(0o755)
+    log = tmp_path / "argv.jsonl"
+    v = verdict("37 trades carried 56833.67 notional.",
+                [{"statement": "notional", "value": "56833.67", "tool_call_id": "toolu_cli1"}])
+    monkeypatch.setenv("FAKE_CLAUDE_LOG", str(log))
+    monkeypatch.setenv("FAKE_CLAUDE_VERDICT", v.model_dump_json())
+    monkeypatch.setenv("FAKE_CLAUDE_TRADES", json.dumps(TRADES))
+
+    cli = ClaudeCli("claude-opus-5-5", "medium", binary=str(fake), workdir=tmp_path / "work")
+    out = await investigate_alert(build(cli, FakeTools()), ALERT["alert_id"], "live")
+
+    assert out["error"] is None
+    assert out["verdict"]["classification"] == "escalate"
+    assert out["tool_calls"] == [{"id": "toolu_cli1", "name": "query_trades", "input": {"venue": "kraken"}}]
+    assert out["grounding"]["groundedness"] == 1.0
+    assert out["usage"]["requests"] == 2
+    investigate_argv, conclude_argv = [json.loads(l) for l in log.read_text().splitlines()]
+    # Investigation: MCP tools only, a fresh session; conclusion resumes that session with the schema.
+    assert investigate_argv[investigate_argv.index("--tools") + 1] == ""
+    assert "mcp__tidemark__query_trades" in investigate_argv[investigate_argv.index("--allowedTools") + 1]
+    session = investigate_argv[investigate_argv.index("--session-id") + 1]
+    assert conclude_argv[conclude_argv.index("--resume") + 1] == session
+    assert "--json-schema" in conclude_argv
+
+
+async def test_cli_backend_reports_a_failed_run_as_an_error(tmp_path):
+    from investigator.claude_cli import ClaudeCli
+
+    fake = tmp_path / "claude"
+    fake.write_text('#!/bin/sh\necho \'{"type":"result","subtype":"success","is_error":true,'
+                    '"result":"Not logged in"}\'\n')
+    fake.chmod(0o755)
+    cli = ClaudeCli("claude-opus-5-5", "medium", binary=str(fake), workdir=tmp_path / "work")
+    out = await investigate_alert(build(cli, FakeTools()), ALERT["alert_id"], "live")
+    assert "Not logged in" in out["error"]
+    assert out["verdict"] is None

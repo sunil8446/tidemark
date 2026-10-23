@@ -20,7 +20,8 @@ from typing import Any, TypedDict
 import anthropic
 from langgraph.graph import END, START, StateGraph
 
-from . import grounding, prompts
+from . import claude_cli, grounding, prompts
+from .claude_cli import ClaudeCli
 from .cost import Usage
 from .models import Verdict
 from .tools import ToolBackend
@@ -37,6 +38,7 @@ INVESTIGATION_TOOLS = {"query_trades", "book_snapshot", "cross_venue_context", "
 class State(TypedDict, total=False):
     alert_id: str
     stream: str
+    session_id: str
     alert: dict
     history: dict
     messages: list
@@ -50,7 +52,8 @@ class State(TypedDict, total=False):
     routed_to: str
 
 
-def build(client: anthropic.AsyncAnthropic, tools: ToolBackend):
+def build(client: anthropic.AsyncAnthropic | ClaudeCli, tools: ToolBackend):
+    """`client` is the API client, or a ClaudeCli to run on a Claude subscription via `claude -p`."""
     tool_defs: list[dict] = []
 
     async def ensure_tools() -> list[dict]:
@@ -71,13 +74,38 @@ def build(client: anthropic.AsyncAnthropic, tools: ToolBackend):
             "before": alert["event_ts"], "stream": state["stream"], "k": 5}))
         return {"alert": alert, "history": history}
 
+    async def investigate_cli(state: State) -> State:
+        session = claude_cli.new_session_id()
+        try:
+            events = await client.run(investigate_prompt(state), system=prompts.SYSTEM,
+                                      tools=sorted(INVESTIGATION_TOOLS), session_id=session)
+        except claude_cli.CliError as e:
+            return {"error": str(e), "tool_log": []}
+        state["usage"].add(MODEL, claude_cli.usage_of(events))
+        return {"session_id": session, "tool_log": claude_cli.tool_log(events), "messages": []}
+
+    async def conclude_cli(state: State) -> State:
+        ids = ", ".join(t["id"] for t in state["tool_log"]) or "none"
+        try:
+            events = await client.run(prompts.CONCLUDE.format(tool_call_ids=ids), system=prompts.SYSTEM,
+                                      tools=sorted(INVESTIGATION_TOOLS), resume=state["session_id"],
+                                      json_schema=Verdict.model_json_schema())
+            verdict = Verdict.model_validate(claude_cli.structured_output(events))
+        except (claude_cli.CliError, ValueError) as e:
+            return {"error": f"no verdict ({e})"}
+        state["usage"].add(MODEL, claude_cli.usage_of(events))
+        return {"verdict": verdict.model_dump()}
+
+    def investigate_prompt(state: State) -> str:
+        return prompts.INVESTIGATE.format(
+            stream=state["stream"],
+            alert_json=json.dumps(state["alert"], sort_keys=True, indent=1),
+            history_json=json.dumps(state["history"], sort_keys=True, indent=1))
+
     async def investigate(state: State) -> State:
         usage = state["usage"]
         defs = await ensure_tools()
-        messages: list[Any] = [{"role": "user", "content": prompts.INVESTIGATE.format(
-            stream=state["stream"],
-            alert_json=json.dumps(state["alert"], sort_keys=True, indent=1),
-            history_json=json.dumps(state["history"], sort_keys=True, indent=1))}]
+        messages: list[Any] = [{"role": "user", "content": investigate_prompt(state)}]
         log: list[dict] = []
         for _ in range(MAX_TOOL_TURNS):
             resp = await client.beta.messages.create(
@@ -145,8 +173,9 @@ def build(client: anthropic.AsyncAnthropic, tools: ToolBackend):
 
     g = StateGraph(State)
     g.add_node("fetch_alert", fetch_alert)
-    g.add_node("investigate", investigate)
-    g.add_node("conclude", conclude)
+    cli = isinstance(client, ClaudeCli)
+    g.add_node("investigate", investigate_cli if cli else investigate)
+    g.add_node("conclude", conclude_cli if cli else conclude)
     g.add_node("check_grounding", check_grounding)
     g.add_node("route", route)
     g.add_edge(START, "fetch_alert")
