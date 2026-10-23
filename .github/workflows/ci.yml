@@ -87,10 +87,19 @@ jobs:
               - 'agent/**'
               - 'evals/**'
               - 'mcp-server/**'
+      # Secrets cannot appear in `if:`; expose whether the key exists as a step output.
+      # Without a key (forks, or no API account) the gate is skipped with a notice, not failed.
+      - name: check for an API key
+        id: key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then echo "present=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::ANTHROPIC_API_KEY not set: agent eval gate skipped (run it locally with --backend cli)"; fi
       - uses: astral-sh/setup-uv@v6
-        if: steps.changed.outputs.agent == 'true'
+        if: steps.changed.outputs.agent == 'true' && steps.key.outputs.present == 'true'
       - name: eval gate
-        if: steps.changed.outputs.agent == 'true'
+        if: steps.changed.outputs.agent == 'true' && steps.key.outputs.present == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
