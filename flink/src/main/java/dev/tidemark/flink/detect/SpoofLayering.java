@@ -11,6 +11,8 @@ import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.util.Collector;
 
@@ -40,6 +42,14 @@ import org.apache.flink.util.Collector;
  * same side near the top is an amend (the order moved), not liquidity leaving.
  * A pull is therefore only confirmed {@code repriceMs} after it happens.
  *
+ * <p>Confirmations and expiries run on <b>book time</b>: every book update first
+ * settles candidates that are due by its own timestamp. The book stream is in
+ * order per instrument, while the operator's watermark is the minimum of the
+ * book and trade inputs, so timers alone can fire long after later book
+ * updates (including resubscribe snapshots) were applied, which in a replay or
+ * catch-up silently wiped every pending candidate. The event-time timer stays
+ * as a backstop for a book that goes quiet.
+ *
  * <p>The local book is truncated to {@code depth} levels per side after every
  * message, as Kraken requires: levels that drift out of the subscribed depth
  * are never deleted by the feed, and without truncation they resurface later
@@ -63,6 +73,15 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
   private transient MapState<String, BigDecimal> bids;
   private transient MapState<String, BigDecimal> asks;
   private transient MapState<String, Candidate> candidates; // key: side + "@" + price
+  private transient Counter cBook;
+  private transient Counter cCandidates;
+  private transient Counter cPulls;
+  private transient Counter cConfirmed;
+  private transient Counter cDismissed;
+  private transient Counter cRepriced;
+  private transient Counter cExpired;
+  private transient Counter cTimers;
+  private transient Counter cTimerCandidates;
 
   /** A large add being watched. */
   public static class Candidate {
@@ -99,6 +118,16 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
     asks = getRuntimeContext().getMapState(new MapStateDescriptor<>("asks", Types.STRING, TypeInformation.of(BigDecimal.class)));
     candidates = getRuntimeContext().getMapState(
         new MapStateDescriptor<>("candidates", Types.STRING, TypeInformation.of(Candidate.class)));
+    MetricGroup g = getRuntimeContext().getMetricGroup().addGroup("spoof");
+    cBook = g.counter("book_messages");
+    cCandidates = g.counter("candidates");
+    cPulls = g.counter("pulls");
+    cConfirmed = g.counter("confirmed");
+    cDismissed = g.counter("dismissed_traded_or_lifetime");
+    cRepriced = g.counter("dismissed_repriced");
+    cExpired = g.counter("expired_resting");
+    cTimers = g.counter("timers_fired");
+    cTimerCandidates = g.counter("candidates_settled_checks");
   }
 
   static String norm(String price) {
@@ -108,6 +137,8 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
   @Override
   public void processElement1(BookMsg m, Context ctx, Collector<AlertEvent> out) throws Exception {
     long ts = m.eventTsUs / 1000;
+    cBook.inc();
+    settle(ts, ctx.getCurrentKey(), out); // book-time clock: confirm or expire what is due before applying
     if (m.isSnapshot) {
       bids.clear();
       asks.clear();
@@ -163,9 +194,11 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
         double filled = Math.max(0, c.tradedAtLevel - c.levelBefore);
         if (filled >= maxTradedFraction * c.added || life > maxLifeMs || life < minLifeMs) {
           candidates.remove(key); // traded against, rested long enough, or just flicker
+          cDismissed.inc();
         } else {
           c.pulledTsMs = ts;
           c.remaining = now;
+          cPulls.inc();
           candidates.put(key, c);
           ctx.timerService().registerEventTimeTimer(ts + repriceMs);
         }
@@ -193,6 +226,7 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
           n.medianLevel = depthOthers;
           n.lastLevel = now;
           candidates.put(key, n);
+          cCandidates.inc();
           ctx.timerService().registerEventTimeTimer(ts + maxLifeMs + 1);
         }
       }
@@ -226,19 +260,32 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
     }
     for (String k : moved) {
       candidates.remove(k);
+      cRepriced.inc();
     }
   }
 
   @Override
   public void onTimer(long ts, OnTimerContext ctx, Collector<AlertEvent> out) throws Exception {
+    cTimers.inc();
+    settle(ts, ctx.getCurrentKey(), out);
+  }
+
+  /** Confirms pulls whose repricing window has passed and drops adds that rested too long, as of {@code now}. */
+  private void settle(long now, String key, Collector<AlertEvent> out) throws Exception {
+    if (candidates.isEmpty()) {
+      return;
+    }
     List<String> done = new ArrayList<>();
     for (Map.Entry<String, Candidate> e : candidates.entries()) {
       Candidate c = e.getValue();
-      if (c.pulledTsMs > 0 && c.pulledTsMs + repriceMs <= ts) {
-        out.collect(alert(ctx.getCurrentKey(), c, c.pulledTsMs, c.remaining)); // pull confirmed
+      cTimerCandidates.inc();
+      if (c.pulledTsMs > 0 && c.pulledTsMs + repriceMs <= now) {
+        out.collect(alert(key, c, c.pulledTsMs, c.remaining)); // pull confirmed
+        cConfirmed.inc();
         done.add(e.getKey());
-      } else if (c.pulledTsMs == 0 && c.addTsMs + maxLifeMs < ts) {
+      } else if (c.pulledTsMs == 0 && c.addTsMs + maxLifeMs < now) {
         done.add(e.getKey()); // stayed on the book: not spoof-like
+        cExpired.inc();
       }
     }
     for (String k : done) {

@@ -20,6 +20,8 @@
     <junit.version>5.11.4</junit.version>
     <!-- Outside the synced OneDrive folder locally; overridden in Docker builds. -->
     <tidemark.build.dir>${user.home}/.tidemark-data/build/flink</tidemark.build.dir>
+    <!-- Extra JVM flags for ad-hoc test runs: -DextraArgLine="..." -->
+    <extraArgLine></extraArgLine>
   </properties>
 
   <dependencies>
@@ -171,7 +173,7 @@
         <version>3.5.2</version>
         <configuration>
           <!-- Same module opens the Flink distribution uses on Java 17+ (Kryo needs them). -->
-          <argLine>--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED</argLine>
+          <argLine>${extraArgLine} -Djava.security.manager=allow --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED</argLine>
         </configuration>
       </plugin>
       <plugin>

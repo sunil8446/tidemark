@@ -27,6 +27,9 @@ Public crypto feeds carry no trader or order identity, so there is no ground tru
 | **Kraken never deletes levels that drift out of the subscribed depth**; untruncated books showed phantom best prices | Truncate to depth after every message (detector, injector, book checkpoints, MCP rebuild) |
 | Dislocation false positives from one venue's stale last trade | Only score samples where both venues traded in the last 5 s |
 | Injected spoofs were erased by the next real update at that level (Kraken sends absolute quantities) | Injector overlays the synthetic order on every real update until it is pulled |
+| Per-venue replay goroutines drifted hours apart at max speed, so cross-venue logic and the injector's clock saw the wrong world | Replay merges all recordings into one stream in global time order |
+| A pull whose level gained other orders never "fell back", so it was missed | A pull is a single update removing ≥ 80% of the added size, tracked even while the level drifts out of depth |
+| **Spoof confirmations ran on the operator watermark** (min of book and trade inputs). During replay or catch-up the book side raced ahead, and a later resubscribe snapshot wiped every pending candidate before its timer fired: 0 confirmed alerts in production, while unit tests passed | Candidates settle on **book time** (each book update confirms or expires what is due by its own timestamp); timers remain a backstop. Found with per-stage counters, reproduced by running the real job in a local MiniCluster |
 
 ## Consequences
 

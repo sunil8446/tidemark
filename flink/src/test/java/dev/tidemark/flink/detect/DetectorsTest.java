@@ -220,6 +220,18 @@ class DetectorsTest {
   }
 
   @Test
+  void pullIsConfirmedOnBookTimeEvenIfTheWatermarkLags() throws Exception {
+    try (var h = spoof()) {
+      // The trade input holds the watermark back; book updates run ahead, including a resubscribe snapshot.
+      h.processElement1(new StreamRecord<>(book(false, 2_000, new String[][] {{"99.90", "21"}}, new String[][] {}), 2_000));
+      h.processElement1(new StreamRecord<>(book(false, 5_000, new String[][] {{"99.9", "1"}}, new String[][] {}), 5_000));
+      h.processElement1(new StreamRecord<>(book(true, 60_000,
+          new String[][] {{"100.0", "1"}, {"99.9", "1"}}, new String[][] {{"100.1", "1"}}), 60_000));
+      assertEquals(1, h.extractOutputValues().size(), "confirmed by book time before the snapshot reset the book");
+    }
+  }
+
+  @Test
   void spoofIgnoresRepricingAndFlicker() throws Exception {
     try (var h = spoof()) {
       // Amend: 20 pulled from 99.9 and re-added at 99.8 within the repricing window.

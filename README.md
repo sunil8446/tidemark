@@ -30,7 +30,7 @@ Real-time crypto market surveillance: live trade and order-book feeds from Coinb
 | Exactly-once across savepoint upgrade + TaskManager kill | 40,492 / 40,492 ids, 0 duplicates | 1 h window | [docs/schema-evolution.md](docs/schema-evolution.md) |
 | Flink checkpoint duration | ~74 ms lakehouse, ~216 ms analytics | live load | Prometheus `flink_jobmanager_job_lastCheckpointDuration` |
 | Compaction | 98 → 2 files on `raw_trades` | 40 min of 30–60 s commits | [bench/compaction.md](bench/compaction.md) |
-| 24 h unattended gap report | *running* | started 2026-10-22 07:58 UTC | [bench/gaps.md](bench/gaps.md) |
+| 24 h unattended gap report | *running* | restarted 2026-10-23 01:56 UTC (first attempt stopped for heat) | [bench/gaps.md](bench/gaps.md) |
 
 ## Architecture (target)
 

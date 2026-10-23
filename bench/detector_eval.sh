@@ -12,6 +12,7 @@
 #
 # Output: ~/.tidemark-data/eval/detectors-seed<seed>.md
 #
+# FILES overrides the recordings to replay (default: all of them).
 # WITH_LAKEHOUSE=1 also writes the injected stream to Iceberg (namespace
 # market_inj) so the investigator agent can be evaluated on these alerts. The
 # analytics job is stopped with a savepoint for the run (4 task slots) and
@@ -50,7 +51,7 @@ docker exec jobmanager flink run -d -c dev.tidemark.flink.DetectorsJob /opt/flin
 
 ~/.tidemark-data/bin/replay --metrics-addr "" --speed 0 --topic-suffix .inj \
   --inject-per-pattern "$per" --inject-seed "$seed" --inject-gap 60s \
-  ~/.tidemark-data/recordings/*.zst 2>&1 | grep -E "injected|replayed"
+  ${FILES:-$HOME/.tidemark-data/recordings/*.zst} 2>&1 | grep -E "injected|replayed"
 
 # Drained = every non-empty partition has a committed offset equal to its end
 # offset. (An unknown group reports lag 0, so "lag == 0" alone is not enough.)
