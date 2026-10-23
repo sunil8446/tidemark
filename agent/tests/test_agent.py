@@ -197,3 +197,12 @@ async def test_cli_backend_reports_a_failed_run_as_an_error(tmp_path):
     out = await investigate_alert(build(cli, FakeTools()), ALERT["alert_id"], "live")
     assert "Not logged in" in out["error"]
     assert out["verdict"] is None
+
+
+def test_clock_times_are_checked_against_timestamps():
+    out = json.dumps({"trades": [{"ts": "2026-10-22T08:47:34.314917Z", "price": "103.66"}]})
+    log = [{"id": "t", "input": {"start": "2026-10-22T08:44:00Z"}, "output": out}]
+    g = check("A print at 08:47:34.314917 for 103.66, in a window from 08:44.",
+              [{"statement": "print", "value": "2026-10-22T08:47:34.314917Z", "tool_call_id": "t"}], log)
+    assert g["ungrounded_numbers"] == [] and g["claim_support"] == 1.0, g
+    assert check("A print at 09:12:01.", [], log)["ungrounded_numbers"] == ["09:12:01"]

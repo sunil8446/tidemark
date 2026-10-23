@@ -17,10 +17,19 @@ NUMBER = re.compile(r"(?<![\w.])[-+]?\d[\d,]*(?:\.\d+)?(?![\w])")
 # Numbers that are structural, not evidence: list markers, small counts like "two"
 # written as digits below this are still checked; only ordinals/years are skipped.
 YEAR = re.compile(r"^(19|20)\d{2}$")
+# Clock times ("08:47", "08:47:34.314917") are checked as times, against the times in
+# tool inputs and outputs (ISO timestamps included), not as loose numbers.
+TIME = re.compile(r"(?<!\d)\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?!\d)")
+DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def times_in_text(text: str) -> list[str]:
+    return TIME.findall(text)
 
 
 def numbers_in_text(text: str) -> list[str]:
     out = []
+    text = TIME.sub(" ", DATE.sub(" ", text))
     for m in NUMBER.finditer(text):
         s = m.group(0).replace(",", "")
         if YEAR.match(s):
@@ -86,19 +95,39 @@ def matches(written: str, candidates: list[Decimal]) -> bool:
     return False
 
 
+def times_in(obj: Any) -> list[str]:
+    return times_in_text(obj if isinstance(obj, str) else json.dumps(obj, default=str))
+
+
+def time_matches(written: str, candidates: list[str]) -> bool:
+    """A written time is grounded if a source time starts with it ("08:47" matches "08:47:34.3")."""
+    return any(c.startswith(written) for c in candidates)
+
+
 def check(narrative: str, claims: list[dict], tool_log: list[dict], alert: dict | None = None) -> dict:
     sources = [t["output"] for t in tool_log] + ([alert] if alert else [])
     pool = [n for s in sources for n in numbers_in_output(s)]
     by_id = {t["id"]: numbers_in_output(t["output"]) for t in tool_log}
+    # Times may also come from the agent's own query windows: "between 08:44 and 08:51" is a fact
+    # about what it asked for, which the reader needs.
+    time_pool = [x for s in sources + [t.get("input") for t in tool_log] for x in times_in(s or {})]
+    times_by_id = {t["id"]: times_in(t["output"]) for t in tool_log}
 
     written = numbers_in_text(narrative)
     ungrounded = [w for w in written if not matches(w, pool)]
+    written_times = times_in_text(narrative)
+    ungrounded += [w for w in written_times if not time_matches(w, time_pool)]
     bad_claims = []
     for c in claims:
-        cands = by_id.get(c.get("tool_call_id", ""), [])
-        if not matches(c.get("value", ""), cands):
+        value, cid = c.get("value", ""), c.get("tool_call_id", "")
+        claim_times = times_in_text(value)
+        if claim_times:
+            ok = all(time_matches(t, times_by_id.get(cid, [])) for t in claim_times)
+        else:
+            ok = matches(value, by_id.get(cid, []))
+        if not ok:
             bad_claims.append(c)
-    n = len(written)
+    n = len(written) + len(written_times)
     return {
         "numbers_in_narrative": n,
         "ungrounded_numbers": ungrounded,
