@@ -157,9 +157,14 @@ func (q *queue) Pop() any {
 
 type instrument struct {
 	lastPrice   string
-	bucket      int64   // current 10 s bucket start (ns)
-	bucketNotnl float64 // notional in the current bucket
-	ewma        float64 // EWMA of closed 10 s bucket notional
+	lastSource  pb.Source // source of the last real trade, which synthetic trades copy
+	sizes       []float64 // recent real trade sizes (ring), so synthetic sizes look like the tape
+	sizeAt      int
+	ids         map[uint64]uint64 // real trade id -> id on the injected stream
+	idNext      uint64            // next id on the injected stream (0 until the first real trade)
+	bucket      int64             // current 10 s bucket start (ns)
+	bucketNotnl float64           // notional in the current bucket
+	ewma        float64           // EWMA of closed 10 s bucket notional
 	bids, asks  map[string]string
 }
 
@@ -178,7 +183,6 @@ type Injector struct {
 	next     int
 	q        queue
 	seq      int
-	nextID   uint64
 	accounts int
 	inst     map[string]*instrument
 	disloc   []dislocation
@@ -193,7 +197,7 @@ func New(out sink.Sink, labels Labeller, plan []Injection, accounts int) *Inject
 	sort.Slice(plan, func(i, j int) bool { return plan[i].At.Before(plan[j].At) })
 	return &Injector{
 		out: out, labels: labels, plan: plan, accounts: accounts,
-		nextID: 1 << 62, inst: map[string]*instrument{}, Fired: map[string]int{}, depth: 10,
+		inst: map[string]*instrument{}, Fired: map[string]int{}, depth: 10,
 	}
 }
 
@@ -228,6 +232,7 @@ func (in *Injector) Trade(t *pb.Trade) {
 	in.assign(t)
 	st := in.instr(t.Venue, t.ProductId)
 	in.observeTrade(st, t)
+	in.renumber(st, t)
 	if t.Venue == pb.Venue_VENUE_COINBASE {
 		for _, d := range in.disloc {
 			if d.product == t.ProductId && t.EventTsNs >= d.from && t.EventTsNs <= d.to {
@@ -297,6 +302,7 @@ func (in *Injector) drain() {
 
 func (in *Injector) observeTrade(st *instrument, t *pb.Trade) {
 	st.lastPrice = t.Price
+	st.lastSource = t.Source
 	b := t.EventTsNs - t.EventTsNs%int64(10*time.Second)
 	if b != st.bucket {
 		if st.bucket != 0 {
@@ -311,6 +317,14 @@ func (in *Injector) observeTrade(st *instrument, t *pb.Trade) {
 	p, _ := strconv.ParseFloat(t.Price, 64)
 	s, _ := strconv.ParseFloat(t.Size, 64)
 	st.bucketNotnl += p * s
+	if s > 0 {
+		if len(st.sizes) < 256 {
+			st.sizes = append(st.sizes, s)
+		} else {
+			st.sizes[st.sizeAt] = s
+			st.sizeAt = (st.sizeAt + 1) % len(st.sizes)
+		}
+	}
 }
 
 func (in *Injector) observeBook(b *pb.BookUpdate) {
@@ -369,6 +383,11 @@ func (in *Injector) advance(ts int64) {
 		p := heap.Pop(&in.q).(pending)
 		switch {
 		case p.trade != nil:
+			st := in.instr(p.trade.Venue, p.trade.ProductId)
+			if st.lastSource != pb.Source_SOURCE_UNSPECIFIED {
+				p.trade.Source = st.lastSource // a different source would mark the trade as synthetic
+			}
+			in.renumber(st, p.trade)
 			in.out.Trade(p.trade)
 		case p.spoofEnd != nil:
 			in.endOverlay(p.spoofEnd, p.ts)
@@ -378,6 +397,51 @@ func (in *Injector) advance(ts int64) {
 	}
 }
 
+// renumber gives every trade on the injected stream, real or synthetic, the next id in one
+// continuous per-instrument sequence that starts at the first real id. Synthetic trades used
+// to carry ids from 2^62, outside the venue's sequence: an investigator could spot them by id
+// alone. A real id seen again (Kraken resends trades on resubscribe) keeps its first mapping,
+// so downstream dedup still works.
+func (in *Injector) renumber(st *instrument, t *pb.Trade) {
+	if st.ids == nil {
+		st.ids = map[uint64]uint64{}
+	}
+	synthetic := t.IngestId == "inject"
+	if !synthetic {
+		if id, ok := st.ids[t.TradeId]; ok {
+			t.TradeId = id
+			return
+		}
+	}
+	if st.idNext == 0 {
+		st.idNext = t.TradeId // first trade seen; a synthetic one before any real trade is rare
+		if synthetic {
+			st.idNext = 1_000_000
+		}
+	}
+	if !synthetic {
+		st.ids[t.TradeId] = st.idNext
+	}
+	t.TradeId = st.idNext
+	st.idNext++
+}
+
+// sizeLike draws a trade size from the instrument's recent real sizes (uniform fallback).
+func sizeLike(st *instrument, r *rand.Rand, fallback float64) float64 {
+	if len(st.sizes) == 0 {
+		return fallback * logBetween(r, 0.3, 3)
+	}
+	return st.sizes[r.IntN(len(st.sizes))]
+}
+
+// rngFor is a deterministic per-injection source, so runs with the same plan are identical.
+func rngFor(id string) *rand.Rand {
+	h := fnv.New64a()
+	h.Write([]byte(id))
+	x := h.Sum64()
+	return rand.New(rand.NewPCG(x, x^0x9e3779b97f4a7c15))
+}
+
 func (in *Injector) push(p pending) {
 	in.seq++
 	p.seq = in.seq
@@ -385,9 +449,8 @@ func (in *Injector) push(p pending) {
 }
 
 func (in *Injector) synthTrade(v pb.Venue, product, price, size string, side pb.Side, ts int64, buyer, seller string) *pb.Trade {
-	in.nextID++
-	return &pb.Trade{
-		Venue: v, ProductId: product, TradeId: in.nextID, Price: price, Size: size, TakerSide: side,
+	return &pb.Trade{ // TradeId is assigned by renumber at emission, in event-time order
+		Venue: v, ProductId: product, Price: price, Size: size, TakerSide: side,
 		EventTsNs: ts, RecvTsNs: ts, Source: pb.Source_SOURCE_REPLAY, IngestId: "inject",
 		BuyerAccount: buyer, SellerAccount: seller,
 	}
@@ -413,16 +476,27 @@ func (in *Injector) fire(inj Injection) {
 			return
 		}
 		target := inj.Params["multiple"] * st.ewma
-		n := 20
-		size := target / price / float64(n)
+		// Sizes, timing and sides drawn like the real tape: sizes sampled from recent real trades
+		// and scaled to the target notional, random times inside the window, random taker side.
+		// (An earlier version printed 20 identical sizes on a fixed 0.5 s clock.)
+		r := rngFor(inj.ID)
+		n := 12 + r.IntN(19)
+		sizes := make([]float64, n)
+		sum := 0.0
+		for i := range sizes {
+			sizes[i] = sizeLike(st, r, target/price/float64(n))
+			sum += sizes[i]
+		}
+		times := make([]int64, n)
+		for i := range times {
+			times[i] = at + r.Int64N(int64(10*time.Second))
+		}
+		sort.Slice(times, func(i, j int) bool { return times[i] < times[j] })
 		for i := 0; i < n; i++ {
-			ts := at + int64(i)*int64(500*time.Millisecond)
-			side := pb.Side_SIDE_BUY
-			if i%3 == 0 {
-				side = pb.Side_SIDE_SELL
-			}
-			in.push(pending{ts: ts, trade: in.synthTrade(inj.Venue, inj.Product, st.lastPrice,
-				strconv.FormatFloat(size, 'f', 8, 64), side, ts, "", "")})
+			side := pick(r, pb.Side_SIDE_BUY, pb.Side_SIDE_SELL)
+			size := sizes[i] * (target / price) / sum
+			in.push(pending{ts: times[i], trade: in.synthTrade(inj.Venue, inj.Product, st.lastPrice,
+				strconv.FormatFloat(size, 'f', 8, 64), side, times[i], "", "")})
 		}
 		label.EndTsNs = at + int64(10*time.Second)
 		label.Params["target_notional"] = strconv.FormatFloat(target, 'f', 2, 64)
@@ -472,7 +546,7 @@ func (in *Injector) fire(inj Injection) {
 			return
 		}
 		price, _ := strconv.ParseFloat(st.lastPrice, 64)
-		size := math.Max(0.001, 2000/price) // about $2k notional
+		size := math.Max(0.001, sizeLike(st, rngFor(inj.ID), 2000/price)) // a size the tape has seen
 		a, b := "wash-"+inj.ID+"-a", "wash-"+inj.ID+"-b"
 		if inj.Params["round_trip"] < 0.5 {
 			in.push(pending{ts: at, trade: in.synthTrade(inj.Venue, inj.Product, st.lastPrice,

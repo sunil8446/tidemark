@@ -134,6 +134,6 @@ See ADR-0006. In short: phantom Kraken book levels (no deletes outside the subsc
 
 ### Next
 
-1. Make the injector realistic (ids inside a plausible range, sizes and timing drawn from the recorded tape), then re-run the volume-spike slice.
+1. ~~Make the injector realistic~~ Done in code (2026-10-23): every trade on the injected stream is renumbered into one continuous per-instrument sequence, synthetic sizes are drawn from the instrument's recent real sizes, times are random within the window, taker sides are random, and synthetic trades copy the tape's `source` (they were tagged `replay`, which `query_trades` exposes). The flat price stays: it is the pattern being injected. **Not yet re-measured:** the volume-spike slice needs a fresh injected run and re-investigation.
 2. Hand-label the real alerts in the review page; report judge-human agreement.
 3. Run the full 118-alert set; try routing low-confidence benign verdicts to review and report the queue size it costs.

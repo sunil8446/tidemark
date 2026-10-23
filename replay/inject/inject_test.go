@@ -138,3 +138,66 @@ func TestSpoofInjectionNeedsABookAndRestoresTheLevel(t *testing.T) {
 		t.Fatal("pull should follow after life_ms")
 	}
 }
+
+func TestVolumeSpikeTradesBlendIntoTheTape(t *testing.T) {
+	// Injected trades must not be identifiable by artefacts: ids continue the venue's sequence,
+	// sizes come from the real tape, timing is not a fixed clock. (An investigator agent spotted
+	// the old injections by ids from 2^62, identical sizes and a 0.5 s cadence.)
+	base := time.Unix(1_800_000_000, 0)
+	plan := []Injection{{ID: "v1", Pattern: "volume_spike", Venue: pb.Venue_VENUE_COINBASE, Product: "BTC-USD",
+		At: base.Add(400 * time.Second), Params: map[string]float64{"multiple": 20}}}
+	mem := &sink.Memory{}
+	in := New(mem, &labels{}, plan, 100)
+	sizes := []string{"0.01", "0.25", "0.003", "1.2", "0.07"}
+	for i := 0; i < 600; i++ {
+		tr := trade(uint64(5_000_000+i), base.Add(time.Duration(i)*time.Second), "100.00")
+		tr.Size = sizes[i%len(sizes)]
+		tr.Source = pb.Source_SOURCE_WS
+		in.Trade(tr)
+	}
+	// Kraken-style resend of an earlier real trade must keep its id, so dedup still drops it.
+	in.Trade(trade(5_000_010, base.Add(599*time.Second), "100.00"))
+	in.Flush(context.Background())
+
+	trades, _, _ := mem.Snapshot()
+	ids := map[uint64]int{}
+	var synth []*pb.Trade
+	for _, tr := range trades {
+		ids[tr.TradeId]++
+		if tr.IngestId == "inject" {
+			synth = append(synth, tr)
+		}
+	}
+	if len(synth) < 12 || len(synth) > 30 {
+		t.Fatalf("synthetic trades %d", len(synth))
+	}
+	distinctSizes, gaps := map[string]bool{}, map[int64]bool{}
+	for i, tr := range synth {
+		if tr.TradeId < 5_000_000 || tr.TradeId > 5_000_000+700 {
+			t.Fatalf("synthetic id %d outside the real sequence", tr.TradeId)
+		}
+		if ids[tr.TradeId] != 1 {
+			t.Fatalf("synthetic id %d collides", tr.TradeId)
+		}
+		distinctSizes[tr.Size] = true
+		if tr.Source != pb.Source_SOURCE_WS {
+			t.Fatalf("synthetic trade source %v differs from the tape", tr.Source)
+		}
+		if i > 0 {
+			gaps[(tr.EventTsNs-synth[i-1].EventTsNs)/int64(time.Millisecond)] = true
+		}
+	}
+	if len(distinctSizes) < 3 || len(gaps) < 5 {
+		t.Fatalf("sizes %d distinct, gaps %d distinct: still looks synthetic", len(distinctSizes), len(gaps))
+	}
+	// Ids are one gapless sequence; the resent real trade reuses its id (the only duplicate).
+	dups := 0
+	for _, n := range ids {
+		if n > 1 {
+			dups++
+		}
+	}
+	if dups != 1 || len(ids) != 600+len(synth) {
+		t.Fatalf("dups %d, distinct ids %d, want 1 and %d", dups, len(ids), 600+len(synth))
+	}
+}
