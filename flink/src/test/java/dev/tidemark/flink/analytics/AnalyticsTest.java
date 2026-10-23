@@ -120,4 +120,41 @@ class AnalyticsTest {
       assertEquals(594, h.extractOutputValues().size());
     }
   }
+
+  @Test
+  void catchUpAfterAHugeBacklogIsOnePassAndMatchesTickByTick() throws Exception {
+    // State from a stalled run (no tick ever final): 3 hours of history and pending ticks.
+    // Restored into the normal operator, the next trade must catch up in one pass, giving the
+    // same as-of samples as ticking second by second, without quadratic time.
+    int n = 3 * 3600;
+    org.apache.flink.runtime.checkpoint.OperatorSubtaskState snapshot;
+    try (var stalled = new KeyedOneInputStreamOperatorTestHarness<String, TradeEvent, Spread>(
+        new KeyedProcessOperator<>(new Spread.Fn(60_000, Long.MAX_VALUE / 4)), e -> e.productId, Types.STRING)) {
+      stalled.open();
+      for (int i = 0; i < n; i++) {
+        long ts = 1_000 + i * 1_000L + 200;
+        stalled.processElement(new StreamRecord<>(t("kraken", i, "99.0", "1", ts + 100, "buy"), ts + 100));
+        stalled.processElement(new StreamRecord<>(
+            t("coinbase", i, i % 2 == 0 ? "100.0" : "101.0", "1", ts, "buy"), ts));
+      }
+      assertTrue(stalled.extractOutputValues().isEmpty());
+      snapshot = stalled.snapshot(1, 1);
+    }
+    try (var h = new KeyedOneInputStreamOperatorTestHarness<String, TradeEvent, Spread>(
+        new KeyedProcessOperator<>(new Spread.Fn(60_000, 5_000)), e -> e.productId, Types.STRING)) {
+      h.initializeState(snapshot);
+      h.open();
+      long t0 = System.nanoTime();
+      long last = 1_000 + n * 1_000L + 200;
+      h.processElement(new StreamRecord<>(t("coinbase", n, "100.0", "1", last, "buy"), last));
+      long ms = (System.nanoTime() - t0) / 1_000_000;
+      List<Spread> out = h.extractOutputValues();
+      assertEquals(n - 5, out.size()); // ticks 2 s .. (n - 4) s, the last tick at or before last - 5 s
+      for (Spread s : out) { // as-of: the coinbase price alternates every second
+        long i = (s.tsMs - 1_200) / 1_000;
+        assertEquals(0, new BigDecimal(i % 2 == 0 ? "100.0" : "101.0").compareTo(s.coinbasePrice), "tick " + s.tsMs);
+      }
+      assertTrue(ms < 5_000, "catch-up took " + ms + " ms");
+    }
+  }
 }

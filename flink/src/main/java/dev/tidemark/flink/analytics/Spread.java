@@ -107,9 +107,65 @@ public class Spread {
       }
       // Sample every tick that trade time has moved past by more than the allowed lateness.
       long finalUpTo = Math.max(newest(coinbase), newest(kraken)) - latenessMs;
-      while (nextTick.value() != null && nextTick.value() <= finalUpTo) {
-        sample(nextTick.value(), ctx.getCurrentKey(), ctx.timerService(), out);
+      if (nextTick.value() != null && nextTick.value() <= finalUpTo) {
+        catchUp(finalUpTo, ctx.getCurrentKey(), ctx.timerService(), out);
       }
+    }
+
+    /**
+     * Samples every pending tick up to {@code upTo} in one pass over in-memory copies of the
+     * histories, then writes the trimmed histories back once. After downtime there can be hours
+     * of pending ticks; doing them one {@link #sample} at a time re-serialised the whole history
+     * per tick.
+     */
+    private void catchUp(long upTo, String product, org.apache.flink.streaming.api.TimerService timers,
+        Collector<Spread> out) throws Exception {
+      ArrayList<Last> cb = coinbase.value() == null ? new ArrayList<>() : coinbase.value();
+      ArrayList<Last> kr = kraken.value() == null ? new ArrayList<>() : kraken.value();
+      int ci = -1;
+      int ki = -1;
+      long tick = nextTick.value();
+      long newest = Math.max(cb.isEmpty() ? Long.MIN_VALUE : cb.get(cb.size() - 1).tsMs,
+          kr.isEmpty() ? Long.MIN_VALUE : kr.get(kr.size() - 1).tsMs);
+      while (tick <= upTo) {
+        while (ci + 1 < cb.size() && cb.get(ci + 1).tsMs <= tick) {
+          ci++;
+        }
+        while (ki + 1 < kr.size() && kr.get(ki + 1).tsMs <= tick) {
+          ki++;
+        }
+        Last c = ci < 0 ? null : cb.get(ci);
+        Last k = ki < 0 ? null : kr.get(ki);
+        if (c != null && k != null && tick - c.tsMs <= maxStaleMs && tick - k.tsMs <= maxStaleMs) {
+          out.collect(of(product, tick, c, k));
+        }
+        tick += 1000;
+      }
+      // Keep the as-of entry for the last sampled tick and everything after it.
+      coinbase.update(new ArrayList<>(cb.subList(Math.max(ci, 0), cb.size())));
+      kraken.update(new ArrayList<>(kr.subList(Math.max(ki, 0), kr.size())));
+      lastSampled.update(tick - 1000);
+      if (newest >= tick - maxStaleMs) {
+        timers.registerEventTimeTimer(tick); // backstop if trades stop arriving
+        nextTick.update(tick);
+      } else {
+        nextTick.clear();
+      }
+    }
+
+    static Spread of(String product, long tick, Last cb, Last kr) {
+      Spread s = new Spread();
+      s.productId = product;
+      s.tsMs = tick;
+      s.coinbasePrice = cb.price;
+      s.krakenPrice = kr.price;
+      s.coinbaseAgeMs = tick - cb.tsMs;
+      s.krakenAgeMs = tick - kr.tsMs;
+      s.spread = cb.price.subtract(kr.price);
+      BigDecimal mid = cb.price.add(kr.price).divide(BigDecimal.valueOf(2), MathContext.DECIMAL64);
+      s.spreadBps = mid.signum() == 0 ? 0 : s.spread.divide(mid, new MathContext(20, RoundingMode.HALF_EVEN))
+          .multiply(BigDecimal.valueOf(10_000)).doubleValue();
+      return s;
     }
 
     /** Latest entry at or before tick; drops entries older than it. Null if none. */
@@ -147,18 +203,7 @@ public class Spread {
       Last cb = asOf(coinbase, tick);
       Last kr = asOf(kraken, tick);
       if (cb != null && kr != null && tick - cb.tsMs <= maxStaleMs && tick - kr.tsMs <= maxStaleMs) {
-        Spread s = new Spread();
-        s.productId = product;
-        s.tsMs = tick;
-        s.coinbasePrice = cb.price;
-        s.krakenPrice = kr.price;
-        s.coinbaseAgeMs = tick - cb.tsMs;
-        s.krakenAgeMs = tick - kr.tsMs;
-        s.spread = cb.price.subtract(kr.price);
-        BigDecimal mid = cb.price.add(kr.price).divide(BigDecimal.valueOf(2), MathContext.DECIMAL64);
-        s.spreadBps = mid.signum() == 0 ? 0 : s.spread.divide(mid, new MathContext(20, RoundingMode.HALF_EVEN))
-            .multiply(BigDecimal.valueOf(10_000)).doubleValue();
-        out.collect(s);
+        out.collect(of(product, tick, cb, kr));
       }
       lastSampled.update(tick);
       // Keep ticking while either venue has a price that will still be fresh at the next tick.
