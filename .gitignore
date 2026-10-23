@@ -8,6 +8,8 @@
 *.ndjson
 *.ndjson.zst
 *.ndjson.gz
+# ...but small test fixtures are part of the source.
+!**/testdata/*.ndjson
 
 # Go
 /bin/
