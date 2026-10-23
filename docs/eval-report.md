@@ -91,4 +91,49 @@ See ADR-0006. In short: phantom Kraken book levels (no deletes outside the subsc
 
 ## Investigator agent
 
-*Pending: needs a Claude API key and your approval to spend (about $0.05–0.15 per investigation).* The harness is ready: `evals/run_eval.py` over `evals/eval_set.jsonl` (118 alerts from the held-out run: 77 injected with ground truth, 41 real alerts awaiting a human label in the review page). Metrics: triage accuracy, groundedness, claim support, LLM-judge pass rate with agreement against human grades, cost and latency per investigation.
+**Run:** the 30-alert CI subset (`evals/ci_subset.jsonl`) from the held-out detector run (seed 7): 24 injected alerts with ground truth (18 spoof-like layering, 6 volume spike) and 6 real volume-spike alerts with no label yet. Model `claude-opus-5-5` at effort `medium`, through the Claude Code CLI backend (`--backend cli`, a Claude subscription rather than an API key; [agent/README](../agent/README.md)). The same MCP tools, prompts and `Verdict` schema as the API backend. Judge: the same model at effort `low`, blind to the label. 2026-10-23. Reproduce: `uv run python evals/run_eval.py --set evals/ci_subset.jsonl --backend cli --record --fixtures evals/fixtures`; CI replays the recorded tool results.
+
+### Results
+
+| Slice | Cases | Triage correct | Judge pass | Escalated |
+|---|---:|---:|---:|---:|
+| Injected volume spike | 6 | 6 (1.00) | 5 | 6 |
+| Injected spoof-like layering | 18 | 11 (0.61) | 14 | 11 |
+| **All labelled (recall)** | **24** | **17 (0.71)** | 19 | 17 |
+| Real volume spike (unlabelled) | 6 | needs a human label | 5 | 0 |
+
+| Metric | Value |
+|---|---:|
+| Groundedness (narrative numbers traceable to a tool result) | 0.996 mean; 26 / 30 cases fully grounded |
+| Claim support (each cited claim found in its cited tool call) | 1.00 |
+| Judge pass rate (all 30) | 0.80 |
+| Tool calls per case | 5.0 mean |
+| Latency per case | 68 s p50, 87 s p95 |
+| Tokens per case | about 5,200 output; API-equivalent cost $0.31 (not billed: subscription) |
+| **CI gate** (accuracy ≥ 0.80, groundedness ≥ 0.95) | **fails on accuracy** (0.71) |
+
+### What the numbers say
+
+- **Every labelled case is an injection, so "triage correct" is recall of escalation.** It says nothing yet about false escalations: those need the hand-labelled real alerts.
+- **Volume-spike accuracy (6 / 6) is not evidence of skill yet.** Five of the six case files cite the injector's artefacts: synthetic trades carry ids from 2^62 upward (outside the venue's sequence), identical sizes and a fixed 0.5 s clock. A real wash-style burst would not label itself this way. Until the injector draws ids, sizes and timing from the real distribution, this slice measures artefact spotting. The six *real* bursts were all called `likely_benign` (5 of 6 judged sound), consistent with the detector evaluation finding that most large real bursts are organic; they need a human label before they count.
+- **Spoof-like layering is the honest number: 11 / 18 (0.61).** Spoof injections touch only the book, so there is no id tell. The misses are the same ambiguity the detector evaluation found: a large order added and pulled with nothing filled is also what an aggressive market maker does, and in 4 of 7 misses the injected order sat at (or drifted to) the touch, where re-quoting is the natural reading.
+- **Confidence is calibrated, which makes the misses cheap.** Wrong verdicts were `low` (5) or `medium` (2), never `high`; 10 of the 17 correct ones were `high`. Routing every `low`-confidence `likely_benign` to a human, instead of auto-closing it, would have caught 5 of the 7 misses, and it would have added 1 review among the 6 real alerts (the only low-confidence benign call there).
+- **Grounding holds.** Every cited claim was found in the tool call it cites, and only 4 numbers across 30 narratives were not traceable.
+- **The judge grades reasoning, not correctness.** It agreed with triage correctness on 16 / 24 cases: it passes well-argued wrong calls and fails right calls that state one unsupported detail. Agreement with human grades still needs the hand-labelled set.
+
+### Bugs this evaluation found
+
+| Finding | Fix |
+|---|---|
+| **Book checkpoints were future-dated.** `BookCheckpoints` applied book messages immediately but cut checkpoints on event-time timers; with a lagging watermark the 08:02:30 checkpoint held the 08:02:40 book, so every book rebuilt from it was crossed (bid 2424.53 over ask 2395.62). The same watermark race as the spoof detector's, in another operator | Checkpoints are cut in book time (before the first message past a tick); `LakehouseJob --only book_snapshots` rebuilt the table from Kafka. The MCP server now flags any crossed rebuild as unreliable instead of presenting it |
+| MCP tools failed under concurrent calls (one ClickHouse session per process) | One Trino and ClickHouse connection per worker thread |
+| The judge was not shown the detector history the investigator gets in its prompt, and saw tool results cut to 6,000 characters (the agent sees 24,000), so it marked supported claims as fabricated (pass rate 0.37) | The judge sees exactly what the investigator saw; all 30 cases re-graded from the recorded tool results (`--regrade`), pass rate 0.80 |
+| Grounding split clock times (`08:47:34.314917`) into loose numbers and could not match ISO timestamps | Times are checked against times in tool inputs and outputs |
+| On the CLI backend the model could see `get_alert` but not call it, and reported the refusal as a failure in its case file | Non-investigation tools are hidden with `--disallowedTools` |
+| A Docker memory squeeze (7.65 GB VM) killed Trino mid-run | The runner treats tool-backend errors as unscored and retries the case; Airflow is paused during evals |
+
+### Next
+
+1. Make the injector realistic (ids inside a plausible range, sizes and timing drawn from the recorded tape), then re-run the volume-spike slice.
+2. Hand-label the real alerts in the review page; report judge-human agreement.
+3. Run the full 118-alert set; try routing low-confidence benign verdicts to review and report the queue size it costs.

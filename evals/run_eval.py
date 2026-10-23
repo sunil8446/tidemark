@@ -79,8 +79,7 @@ async def investigate_and_grade(client, app_factory, item, fixtures_dir, record)
         out = await investigate_alert(app, item["alert_id"], item["stream"])
         out["latency_s"] = round(time.monotonic() - t0, 2)
         if out.get("verdict"):
-            log = [{"id": c["id"], "name": c["name"], "input": c["input"],
-                    "output": await tools.call(c["name"], c["input"])} for c in out["tool_calls"]]
+            log = await tool_log(tools, out)
             broken = [t["name"] for t in log if t["output"].startswith(BACKEND_ERROR)]
             if broken:
                 # The data stack failed mid-case (e.g. Trino restarting): not the agent's fault, and
@@ -88,18 +87,52 @@ async def investigate_and_grade(client, app_factory, item, fixtures_dir, record)
                 out["unscored_verdict"], out["verdict"] = out["verdict"], None
                 out["error"] = f"tool backend error during case: {broken}"
                 return out
-            alert = json.loads(await tools.call("get_alert", {"alert_id": item["alert_id"], "stream": item["stream"]}))
-            try:
-                g, resp = await judge.grade(client, alert, log, out["verdict"])
-                out["judge"] = g.model_dump()
-                out["judge_usage"] = {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens}
-            except Exception as e:  # a failed grade is reported, not fatal to the run
-                out["judge_error"] = str(e)[:300]
+            await grade(client, tools, item, out, log)
         # Written last, so the fixture holds every tool result the agent and the judge used.
         if record and isinstance(tools, RecordingTools):
             (fixtures_dir / (item["alert_id"].replace(":", "_") + ".json")).write_text(
                 json.dumps(tools.recorded, sort_keys=True))
         return out
+
+
+async def tool_log(tools, out: dict) -> list[dict]:
+    return [{"id": c["id"], "name": c["name"], "input": c["input"],
+             "output": await tools.call(c["name"], c["input"])} for c in out["tool_calls"]]
+
+
+async def grade(client, tools, item: dict, out: dict, log: list[dict]) -> None:
+    alert = json.loads(await tools.call("get_alert", {"alert_id": item["alert_id"], "stream": item["stream"]}))
+    history = out.get("history")
+    if history is None:  # results from before history was kept: the same call the graph makes
+        history = json.loads(await tools.call("similar_past_alerts", {
+            "detector": alert["detector"], "product_id": alert["product_id"],
+            "before": alert["event_ts"], "stream": item["stream"], "k": 5}))
+    try:
+        g, resp = await judge.grade(client, alert, log, out["verdict"], history)
+        out["judge"] = g.model_dump()
+        out["judge_usage"] = {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens}
+        out.pop("judge_error", None)
+    except Exception as e:  # a failed grade is reported, not fatal to the run
+        out["judge_error"] = str(e)[:300]
+
+
+async def regrade(client, items: list[dict], done_log: Path, fixtures: Path, concurrency: int) -> None:
+    """Re-run only the judge on finished cases, from their recorded tool results (no investigation)."""
+    rows = {}
+    for line in done_log.read_text().splitlines():
+        r = json.loads(line)
+        rows[r["alert_id"]] = r
+    sem = asyncio.Semaphore(concurrency)
+
+    async def one_grade(r):
+        async with sem:
+            tools = FixtureTools(json.loads((fixtures / (r["alert_id"].replace(":", "_") + ".json")).read_text()))
+            item = {"alert_id": r["alert_id"], "stream": r["stream"]}
+            await grade(client, tools, item, r, await tool_log(tools, r))
+
+    await asyncio.gather(*(one_grade(r) for r in rows.values() if r.get("verdict")))
+    done_log.write_text("".join(json.dumps(r, default=str) + "\n" for r in rows.values()))
+    print(f"regraded {sum(1 for r in rows.values() if r.get('verdict'))} cases", flush=True)
 
 
 def summarize(results: list[dict]) -> dict:
@@ -142,6 +175,8 @@ async def main() -> int:
     ap.add_argument("--backend", choices=["api", "cli"], default="api",
                     help="api: Claude API key; cli: the Claude Code CLI on a Claude subscription")
     ap.add_argument("--fresh", action="store_true", help="ignore results of an earlier, interrupted run")
+    ap.add_argument("--regrade", action="store_true",
+                    help="re-run only the judge on finished cases, from --fixtures (after a judge change)")
     a = ap.parse_args()
     items = [json.loads(l) for l in open(a.set) if l.strip()][: a.limit]
     eval_dir = Path(os.path.expanduser("~/.tidemark-data/eval"))
@@ -149,15 +184,17 @@ async def main() -> int:
     done_log = eval_dir / f"progress-{Path(a.set).stem}-{a.backend}.jsonl"
     if a.fresh:
         done_log.unlink(missing_ok=True)
+    client = ClaudeCli(MODEL, EFFORT) if a.backend == "cli" else anthropic.AsyncAnthropic()
+    if a.regrade:
+        await regrade(client, items, done_log, a.fixtures, a.concurrency)
     previous = {}
     if done_log.exists():
         for line in done_log.read_text().splitlines():
             r = json.loads(line)
             if r.get("verdict"):
                 previous[r["alert_id"]] = r  # cases without a verdict are retried
-    todo = [it for it in items if it["alert_id"] not in previous]
+    todo = [] if a.regrade else [it for it in items if it["alert_id"] not in previous]
     print(f"{len(items) - len(todo)} cases done in an earlier run, {len(todo)} to go", flush=True)
-    client = ClaudeCli(MODEL, EFFORT) if a.backend == "cli" else anthropic.AsyncAnthropic()
 
     # One MCP connection for the whole run: opening and closing one per case hung in the stdio
     # client's shutdown, and each connection costs a server process.

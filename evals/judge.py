@@ -32,6 +32,9 @@ not support; it does not claim to know who traded or why.
 cites (strong evidence -> high confidence; thin or missing data -> low confidence).
 5. clarity: an analyst could act on it in under a minute.
 
+The investigator was given the alert and the detector's recent history for this \
+product up front; facts from either count as supported, like tool results.
+
 Overall pass = all five pass."""
 
 
@@ -45,11 +48,17 @@ class Grade(BaseModel):
     reason: str = Field(description="Two sentences: the main strength and the main weakness.")
 
 
-async def grade(client, alert: dict, tool_log: list[dict], verdict: dict) -> tuple[Grade, object]:
-    """`client` is an AsyncAnthropic, or a ClaudeCli to grade on a Claude subscription."""
+async def grade(client, alert: dict, tool_log: list[dict], verdict: dict,
+                history: dict | None = None) -> tuple[Grade, object]:
+    """`client` is an AsyncAnthropic, or a ClaudeCli to grade on a Claude subscription.
+
+    The judge sees exactly what the investigator saw: the alert, the detector history the
+    graph fetched up front (it is in the investigator's prompt, not a tool call), and every
+    tool result at the same length the investigator received."""
     case = {
         "alert": alert,
-        "tool_results": [{"id": t["id"], "tool": t["name"], "input": t["input"], "output": t["output"][:6000]}
+        "detector_history_given_to_investigator": history,
+        "tool_results": [{"id": t["id"], "tool": t["name"], "input": t["input"], "output": t["output"]}
                          for t in tool_log],
         "case_file": verdict,
     }

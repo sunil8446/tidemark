@@ -196,7 +196,7 @@ async def investigate_alert(app, alert_id: str, stream: str = "live") -> dict:
     final = await app.ainvoke({"alert_id": alert_id, "stream": stream, "usage": Usage(), "started": time.monotonic()})
     return {
         "alert_id": alert_id, "stream": stream,
-        "verdict": final.get("verdict"), "grounding": final.get("grounding"),
+        "verdict": final.get("verdict"), "grounding": final.get("grounding"), "history": final.get("history"),
         "tool_calls": [{k: t[k] for k in ("id", "name", "input")} for t in final.get("tool_log", [])],
         "usage": final["usage"].as_dict(), "seconds": final.get("seconds"),
         "routed_to": final.get("routed_to"), "error": final.get("error"),
