@@ -33,7 +33,7 @@ Public crypto feeds carry no trader or order identity, so there is no ground tru
 
 ## Consequences
 
-- **Good:** every threshold in production traces back to a measured operating point; the evaluation is reproducible (`bench/detector_eval.sh <seed> <n>`) and caught two production bugs (phantom book levels, a naive-datetime shift in the MCP tools).
+- **Good:** every threshold in production traces back to a measured operating point; the evaluation is reproducible (`bench/detector_eval.sh <seed> <n>`) and caught three production bugs (phantom book levels, the watermark race that silenced the spoof detector, a naive-datetime shift in the MCP tools).
 - **Bad:** injected patterns are idealised; recall on real manipulation would be lower, especially for patterns that do not match the injector's model. Volume spike remains weak as a standalone manipulation signal; it is most useful as context for the investigator.
 - **Limitation, stated plainly:** without identity, wash trading can only be evaluated on synthetic accounts, and spoofing can only be flagged as a book pattern, not attributed to a party.
 

@@ -438,7 +438,7 @@ func byStrength(d string, ls []label, as []*pb.Alert, m matchSet, th float64) []
 	case "volume_spike":
 		edges = []float64{0, 5, 10, 20, 1e9}
 	case "spoof_layering":
-		edges = []float64{0, 0.5, 1, 2, 1e9}
+		edges = []float64{0, 0.5, 1, 2, 4, 1e9}
 	case "dislocation":
 		edges, unit = []float64{0, 10, 20, 40, 1e9}, " bps"
 	case "wash_trade":

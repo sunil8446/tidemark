@@ -83,8 +83,8 @@ func Plan(seed uint64, start, end time.Time, warmup, gap time.Duration, perPatte
 			inj.Venue = pick(r, pb.Venue_VENUE_COINBASE, pb.Venue_VENUE_KRAKEN)
 			inj.Params["multiple"] = between(r, 2, 40) // includes subtle ones near any sane threshold
 		case "spoof_layering":
-			inj.Venue = pb.Venue_VENUE_KRAKEN // the only venue with a book feed
-			inj.Params["depth_share"] = between(r, 0.2, 3)
+			inj.Venue = pb.Venue_VENUE_KRAKEN                 // the only venue with a book feed
+			inj.Params["depth_share"] = logBetween(r, 0.3, 8) // spans the real noise floor (see docs/eval-report.md)
 			inj.Params["life_ms"] = between(r, 500, 8000)
 			inj.Params["rank"] = float64(2 + r.IntN(2))
 			inj.Params["ask"] = float64(r.IntN(2))
@@ -103,6 +103,11 @@ func Plan(seed uint64, start, end time.Time, warmup, gap time.Duration, perPatte
 }
 
 func between(r *rand.Rand, lo, hi float64) float64 { return lo + r.Float64()*(hi-lo) }
+
+// logBetween draws uniformly in log space, so small and large magnitudes are equally represented.
+func logBetween(r *rand.Rand, lo, hi float64) float64 {
+	return math.Exp(math.Log(lo) + r.Float64()*(math.Log(hi)-math.Log(lo)))
+}
 func pick[T any](r *rand.Rand, a, b T) T {
 	if r.IntN(2) == 0 {
 		return a

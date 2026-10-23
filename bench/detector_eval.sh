@@ -38,8 +38,7 @@ if [ "${WITH_LAKEHOUSE:-0}" = "1" ]; then
   for t in raw_trades book_deltas gap_events book_snapshots; do
     docker exec trino trino --execute "DROP TABLE IF EXISTS iceberg.market_inj.$t" >/dev/null 2>&1 || true
   done
-  jid=$(flink_jid tidemark-analytics)
-  [ -n "$jid" ] && analytics_sp=$(docker exec jobmanager flink stop --savepointPath s3://checkpoints/savepoints "$jid" 2>/dev/null | grep -oE "s3://[^ ]+")
+  analytics_sp=$(scripts/flink-stop.sh tidemark-analytics || true)
   echo "analytics paused (savepoint ${analytics_sp:-none})"
   docker exec jobmanager flink run -d -c dev.tidemark.flink.LakehouseJob /opt/flink/usrlib/tidemark-flink.jar \
     --topic-suffix .inj --namespace market_inj --group "lake-$group" | grep JobID
@@ -63,9 +62,11 @@ drained() {
 until drained; do sleep 10; done
 sleep 45 # final checkpoint flushes the alert sinks
 if [ "${WITH_LAKEHOUSE:-0}" = "1" ]; then
-  lake="lake-$group"
-  until docker exec redpanda-0 rpk group describe "$lake" 2>/dev/null | awk '
-    $1 ~ /\.v1\.inj$/ && $5 > 0 { total++; if ($3 == $5) done++ } END { exit !(total > 0 && done == total) }'; do sleep 10; done
+  # Both consumer groups of the lakehouse job: trades/deltas/gaps, and book checkpoints.
+  for lake in "lake-$group" "lake-$group-snapshots"; do
+    until docker exec redpanda-0 rpk group describe "$lake" 2>/dev/null | awk '
+      $1 ~ /\.v1\.inj$/ && $5 > 0 { total++; if ($3 == $5) done++ } END { exit !(total > 0 && done == total) }'; do sleep 10; done
+  done
   sleep 75 # one more checkpoint commits the tail to Iceberg
   jid=$(flink_jid tidemark-lakehouse-market_inj); [ -n "$jid" ] && docker exec jobmanager flink cancel "$jid" >/dev/null
   if [ -n "$analytics_sp" ]; then
