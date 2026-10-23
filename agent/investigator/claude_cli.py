@@ -44,7 +44,8 @@ class ClaudeCli:
         self.mcp_config = self.workdir / "mcp.json"
         self.mcp_config.write_text(json.dumps({"mcpServers": {"tidemark": {"command": mcp_command, "args": []}}}))
 
-    async def run(self, prompt: str, *, system: str, tools: list[str], session_id: str | None = None,
+    async def run(self, prompt: str, *, system: str, tools: list[str], hidden: list[str] = (),
+                  session_id: str | None = None,
                   resume: str | None = None, json_schema: dict | None = None, effort: str | None = None,
                   ) -> list[dict]:
         args = [self.binary, "-p", "--output-format", "stream-json", "--verbose",
@@ -55,6 +56,10 @@ class ClaudeCli:
                 "--tools", ""]
         if tools:
             args += ["--allowedTools", ",".join(MCP_PREFIX + t for t in tools)]
+        if hidden:
+            # Claude Code lists every tool the MCP server offers; an allowed-list only blocks calls,
+            # so the model would see e.g. get_alert, try it, and report a refusal as a failure.
+            args += ["--disallowedTools", ",".join(MCP_PREFIX + t for t in hidden)]
         if session_id:
             args += ["--session-id", session_id]
         if resume:
@@ -69,7 +74,17 @@ class ClaudeCli:
         except asyncio.TimeoutError:
             proc.kill()
             raise CliError(f"claude -p timed out after {TIMEOUT_S}s")
-        events = [json.loads(line) for line in out.decode().splitlines() if line.startswith("{")]
+        # Keep the raw stream: when a run misbehaves, this is the only complete record of it.
+        (self.workdir / "runs").mkdir(exist_ok=True)
+        (self.workdir / "runs" / f"{session_id or resume or uuid.uuid4()}-{len(args)}.jsonl").write_bytes(out)
+        events = []
+        for line in out.decode().splitlines():
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(e, dict):
+                events.append(e)
         result = next((e for e in reversed(events) if e.get("type") == "result"), None)
         if result is None:
             raise CliError(f"claude -p exited {proc.returncode} without a result: {err.decode()[-500:]}")
@@ -107,10 +122,15 @@ def tool_log(events: list[dict]) -> list[dict]:
     calls: dict[str, dict] = {}
     order: list[str] = []
     for e in events:
-        content = (e.get("message") or {}).get("content")
-        if not isinstance(content, list):
+        # Only assistant/user turns carry tool traffic; other events (status, retries) may have a
+        # string `message`, so check every shape before reading it.
+        message = e.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        if e.get("type") not in ("assistant", "user") or not isinstance(content, list):
             continue
         for b in content:
+            if not isinstance(b, dict):
+                continue
             if e["type"] == "assistant" and b.get("type") == "tool_use":
                 calls[b["id"]] = {"id": b["id"], "name": b["name"].removeprefix(MCP_PREFIX),
                                   "input": b.get("input") or {}, "output": ""}

@@ -101,3 +101,13 @@ def test_book_snapshot_starts_from_checkpoint_and_applies_later_deltas():
     assert b["best_bid"] == "99" and b["best_ask"] == "101" and b["complete"]
     assert b["checkpoint_ts"] == "2026-10-22T10:00:00Z"
     assert tr.calls[1][1][1] == t0  # deltas strictly after the checkpoint
+
+
+def test_crossed_rebuild_is_flagged_not_presented_as_fact():
+    t = datetime(2026, 10, 22, 8, 2, 39, tzinfo=timezone.utc)
+    # A checkpoint from after a sell-off plus deltas from before it: bid above ask.
+    rows = [(-1, "bid", 0, "2395.61", "1", True, t), (-1, "ask", 0, "2395.62", "1", True, t),
+            (10, "bid", 0, "2424.53", "2", False, t)]
+    book = rebuild_book(rows, depth=10, has_snapshot=True, truncated_input=False, product_id="ETH-USD", t=t)
+    assert book["complete"] is False
+    assert "crossed" in book["warning"]

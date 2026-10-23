@@ -30,6 +30,14 @@ import org.apache.flink.util.Collector;
  * deletes levels that drift out of the subscribed depth). Checkpoints are only
  * written once a real snapshot has been seen, so a partial book is never
  * presented as complete.
+ *
+ * <p>Checkpoints are cut in <b>book time</b>: before applying the first message at
+ * or past a tick, the current state (every message before the tick, in partition
+ * order) is written for that tick. An earlier version used event-time timers;
+ * when the watermark lagged the book (catch-up, replay, an idle input), a timer
+ * fired after later messages had been applied and wrote a future book under an
+ * old timestamp, which crossed every book rebuilt from it. When a quiet book
+ * skips several ticks, only the latest is written: the state is the same.
  */
 public class BookCheckpoints extends KeyedProcessFunction<String, BookMsg, RowData> {
   private final long intervalMs;
@@ -59,6 +67,12 @@ public class BookCheckpoints extends KeyedProcessFunction<String, BookMsg, RowDa
 
   @Override
   public void processElement(BookMsg m, Context ctx, Collector<RowData> out) throws Exception {
+    long ts = m.eventTsUs / 1000;
+    Long tick = nextTick.value();
+    if (tick != null && ts >= tick) {
+      long due = ts / intervalMs * intervalMs; // latest tick at or before this message
+      checkpoint(ctx.getCurrentKey(), due, out);
+    }
     if (m.isSnapshot) {
       bids.clear();
       asks.clear();
@@ -68,11 +82,16 @@ public class BookCheckpoints extends KeyedProcessFunction<String, BookMsg, RowDa
     apply(m.asks, asks);
     truncate(bids, true);
     truncate(asks, false);
-    long ts = m.eventTsUs / 1000;
-    if (nextTick.value() == null) {
-      long tick = (ts / intervalMs + 1) * intervalMs;
-      ctx.timerService().registerEventTimeTimer(tick);
-      nextTick.update(tick);
+    if (tick == null || ts >= tick) {
+      nextTick.update((ts / intervalMs + 1) * intervalMs);
+    }
+  }
+
+  private void checkpoint(String key, long ts, Collector<RowData> out) throws Exception {
+    if (Boolean.TRUE.equals(haveSnapshot.value())) {
+      int sep = key.indexOf(':');
+      emit(out, key.substring(0, sep), key.substring(sep + 1), ts, "bid", bids, true);
+      emit(out, key.substring(0, sep), key.substring(sep + 1), ts, "ask", asks, false);
     }
   }
 
@@ -101,19 +120,6 @@ public class BookCheckpoints extends KeyedProcessFunction<String, BookMsg, RowDa
     }
     prices.sort(bid ? Comparator.reverseOrder() : Comparator.naturalOrder());
     return prices;
-  }
-
-  @Override
-  public void onTimer(long ts, OnTimerContext ctx, Collector<RowData> out) throws Exception {
-    if (Boolean.TRUE.equals(haveSnapshot.value())) {
-      String key = ctx.getCurrentKey();
-      int sep = key.indexOf(':');
-      emit(out, key.substring(0, sep), key.substring(sep + 1), ts, "bid", bids, true);
-      emit(out, key.substring(0, sep), key.substring(sep + 1), ts, "ask", asks, false);
-    }
-    long next = ts + intervalMs;
-    ctx.timerService().registerEventTimeTimer(next);
-    nextTick.update(next);
   }
 
   private void emit(Collector<RowData> out, String venue, String product, long ts, String sideName,

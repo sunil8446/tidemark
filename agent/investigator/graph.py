@@ -74,11 +74,15 @@ def build(client: anthropic.AsyncAnthropic | ClaudeCli, tools: ToolBackend):
             "before": alert["event_ts"], "stream": state["stream"], "k": 5}))
         return {"alert": alert, "history": history}
 
+    async def hidden_tools() -> list[str]:
+        return sorted({t["name"] for t in await tools.list_tools()} - INVESTIGATION_TOOLS)
+
     async def investigate_cli(state: State) -> State:
         session = claude_cli.new_session_id()
         try:
             events = await client.run(investigate_prompt(state), system=prompts.SYSTEM,
-                                      tools=sorted(INVESTIGATION_TOOLS), session_id=session)
+                                      tools=sorted(INVESTIGATION_TOOLS), hidden=await hidden_tools(),
+                                      session_id=session)
         except claude_cli.CliError as e:
             return {"error": str(e), "tool_log": []}
         state["usage"].add(MODEL, claude_cli.usage_of(events))
@@ -88,7 +92,8 @@ def build(client: anthropic.AsyncAnthropic | ClaudeCli, tools: ToolBackend):
         ids = ", ".join(t["id"] for t in state["tool_log"]) or "none"
         try:
             events = await client.run(prompts.CONCLUDE.format(tool_call_ids=ids), system=prompts.SYSTEM,
-                                      tools=sorted(INVESTIGATION_TOOLS), resume=state["session_id"],
+                                      tools=sorted(INVESTIGATION_TOOLS), hidden=await hidden_tools(),
+                                      resume=state["session_id"],
                                       json_schema=Verdict.model_json_schema())
             verdict = Verdict.model_validate(claude_cli.structured_output(events))
         except (claude_cli.CliError, ValueError) as e:

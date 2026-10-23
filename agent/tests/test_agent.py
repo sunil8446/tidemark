@@ -181,6 +181,8 @@ async def test_cli_backend_reads_tool_calls_from_stream_json(tmp_path, monkeypat
     # Investigation: MCP tools only, a fresh session; conclusion resumes that session with the schema.
     assert investigate_argv[investigate_argv.index("--tools") + 1] == ""
     assert "mcp__tidemark__query_trades" in investigate_argv[investigate_argv.index("--allowedTools") + 1]
+    # Tools outside the investigation set are hidden, not just blocked.
+    assert investigate_argv[investigate_argv.index("--disallowedTools") + 1] == "mcp__tidemark__get_alert"
     session = investigate_argv[investigate_argv.index("--session-id") + 1]
     assert conclude_argv[conclude_argv.index("--resume") + 1] == session
     assert "--json-schema" in conclude_argv

@@ -277,7 +277,8 @@ def rebuild_book(rows: list[tuple], depth: int, has_snapshot: bool, truncated_in
     trim()
     best_bid = max(bids) if bids else None
     best_ask = min(asks) if asks else None
-    return {
+    crossed = best_bid is not None and best_ask is not None and best_bid >= best_ask
+    out = {
         "product_id": product_id,
         "as_of": iso(t),
         "last_update": num(last_ts),
@@ -292,3 +293,9 @@ def rebuild_book(rows: list[tuple], depth: int, has_snapshot: bool, truncated_in
         "bid_depth": num(sum(bids.values(), Decimal(0))),
         "ask_depth": num(sum(asks.values(), Decimal(0))),
     }
+    if crossed:
+        # A crossed rebuild means the inputs are inconsistent (a bad checkpoint or missed
+        # deltas), not that the market crossed: say so instead of presenting it as fact.
+        out["complete"] = False
+        out["warning"] = "rebuilt book is crossed (best bid >= best ask): reconstruction unreliable at this time"
+    return out

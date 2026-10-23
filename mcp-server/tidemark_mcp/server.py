@@ -11,6 +11,7 @@ CLICKHOUSE_HOST/CLICKHOUSE_PORT/CLICKHOUSE_USER/CLICKHOUSE_PASSWORD.
 from __future__ import annotations
 
 import os
+import threading
 from typing import Any
 
 import clickhouse_connect
@@ -31,15 +32,26 @@ stream that contains injected, labelled patterns.
 """
 
 
+# Tools run concurrently in worker threads (an agent may call several at once), and neither
+# client is safe to share across threads: clickhouse-connect rejects concurrent queries in
+# one session. Each thread gets its own connection.
+
+
 class TrinoClient:
     def __init__(self) -> None:
-        self.conn = trino.dbapi.connect(
-            host=os.environ.get("TRINO_HOST", "localhost"),
-            port=int(os.environ.get("TRINO_PORT", "8088")),
-            user=os.environ.get("TRINO_USER", "tidemark-mcp"),
-            catalog="iceberg",
-            request_timeout=30,
-        )
+        self.local = threading.local()
+
+    @property
+    def conn(self):
+        if not hasattr(self.local, "conn"):
+            self.local.conn = trino.dbapi.connect(
+                host=os.environ.get("TRINO_HOST", "localhost"),
+                port=int(os.environ.get("TRINO_PORT", "8088")),
+                user=os.environ.get("TRINO_USER", "tidemark-mcp"),
+                catalog="iceberg",
+                request_timeout=30,
+            )
+        return self.local.conn
 
     def query(self, sql: str, params: tuple) -> list[tuple]:
         cur = self.conn.cursor()
@@ -49,13 +61,19 @@ class TrinoClient:
 
 class ClickHouseClient:
     def __init__(self) -> None:
-        self.client = clickhouse_connect.get_client(
-            host=os.environ.get("CLICKHOUSE_HOST", "localhost"),
-            port=int(os.environ.get("CLICKHOUSE_PORT", "8123")),
-            username=os.environ.get("CLICKHOUSE_USER", "tidemark"),
-            password=os.environ.get("CLICKHOUSE_PASSWORD", "tidemark-local-dev"),
-            settings={"readonly": 1, "max_execution_time": 20},
-        )
+        self.local = threading.local()
+
+    @property
+    def client(self):
+        if not hasattr(self.local, "client"):
+            self.local.client = clickhouse_connect.get_client(
+                host=os.environ.get("CLICKHOUSE_HOST", "localhost"),
+                port=int(os.environ.get("CLICKHOUSE_PORT", "8123")),
+                username=os.environ.get("CLICKHOUSE_USER", "tidemark"),
+                password=os.environ.get("CLICKHOUSE_PASSWORD", "tidemark-local-dev"),
+                settings={"readonly": 1, "max_execution_time": 20},
+            )
+        return self.local.client
 
     def query(self, sql: str, params: dict) -> list[dict]:
         res = self.client.query(sql, parameters=params)

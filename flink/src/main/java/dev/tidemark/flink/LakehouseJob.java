@@ -49,6 +49,9 @@ public class LakehouseJob {
     Duration dedupTtl = Duration.ofHours(p.getLong("dedup-ttl-h", 24));
     // market for live data; market_inj when lakehousing the injected evaluation stream.
     String namespace = p.get("namespace", Lakehouse.NAMESPACE);
+    // --only book_snapshots rebuilds just the checkpoint table from Kafka (a backfill after a fix),
+    // without re-appending trades and deltas that are already in the lake.
+    boolean snapshotsOnly = "book_snapshots".equals(p.get("only", ""));
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.getConfig().setGlobalJobParameters(p);
@@ -65,36 +68,38 @@ public class LakehouseJob {
     TableLoader gapsTable = Lakehouse.ensureTable(catalog, namespace, "gap_events", Lakehouse.GAP_EVENTS, "detected_ts");
     TableLoader snapshotsTable = Lakehouse.ensureTable(catalog, namespace, "book_snapshots", Lakehouse.BOOK_SNAPSHOTS, "snapshot_ts");
 
-    // Trades: event-time watermarks, then dedup on (venue, product, trade_id).
-    WatermarkStrategy<TradeEvent> tradeWm = WatermarkStrategy.<TradeEvent>forBoundedOutOfOrderness(outOfOrder)
-        .withTimestampAssigner((t, ts) -> t.eventTsUs / 1000)
-        .withIdleness(idle);
-    DataStream<TradeEvent> trades = env
-        .fromSource(source(brokers, "trades.v1" + suffix, group, new Deserializers.Trades()), tradeWm, "trades.v1")
-        .uid("src-trades").name("trades.v1");
-    DataStream<TradeEvent> unique = trades
-        .keyBy(TradeEvent::tradeKey)
-        .process(new DedupTrades(dedupTtl))
-        .uid("dedup-trades").name("dedup (venue, product, trade_id)");
+    if (!snapshotsOnly) {
+      // Trades: event-time watermarks, then dedup on (venue, product, trade_id).
+      WatermarkStrategy<TradeEvent> tradeWm = WatermarkStrategy.<TradeEvent>forBoundedOutOfOrderness(outOfOrder)
+          .withTimestampAssigner((t, ts) -> t.eventTsUs / 1000)
+          .withIdleness(idle);
+      DataStream<TradeEvent> trades = env
+          .fromSource(source(brokers, "trades.v1" + suffix, group, new Deserializers.Trades()), tradeWm, "trades.v1")
+          .uid("src-trades").name("trades.v1");
+      DataStream<TradeEvent> unique = trades
+          .keyBy(TradeEvent::tradeKey)
+          .process(new DedupTrades(dedupTtl))
+          .uid("dedup-trades").name("dedup (venue, product, trade_id)");
 
-    DataStream<RowData> tradeRows = unique.map(Rows::trade)
-        .returns(InternalTypeInfo.of(FlinkSchemaUtil.convert(Lakehouse.RAW_TRADES)))
-        .uid("rows-trades").name("to RowData: raw_trades");
-    FlinkSink.forRowData(tradeRows).tableLoader(tradesTable).writeParallelism(1)
-        .uidPrefix("sink-raw-trades").append();
+      DataStream<RowData> tradeRows = unique.map(Rows::trade)
+          .returns(InternalTypeInfo.of(FlinkSchemaUtil.convert(Lakehouse.RAW_TRADES)))
+          .uid("rows-trades").name("to RowData: raw_trades");
+      FlinkSink.forRowData(tradeRows).tableLoader(tradesTable).writeParallelism(1)
+          .uidPrefix("sink-raw-trades").append();
 
-    // Book levels: no dedup (seq is per ingestor session); append as delivered.
-    WatermarkStrategy<BookLevelEvent> bookWm = WatermarkStrategy.<BookLevelEvent>forBoundedOutOfOrderness(outOfOrder)
-        .withTimestampAssigner((b, ts) -> b.eventTsUs / 1000)
-        .withIdleness(idle);
-    DataStream<RowData> bookRows = env
-        .fromSource(source(brokers, "book.v1" + suffix, group, new Deserializers.Books()), bookWm, "book.v1")
-        .uid("src-book").name("book.v1")
-        .map(Rows::book)
-        .returns(InternalTypeInfo.of(FlinkSchemaUtil.convert(Lakehouse.BOOK_DELTAS)))
-        .uid("rows-book").name("to RowData: book_deltas");
-    FlinkSink.forRowData(bookRows).tableLoader(bookTable).writeParallelism(1)
-        .uidPrefix("sink-book-deltas").append();
+      // Book levels: no dedup (seq is per ingestor session); append as delivered.
+      WatermarkStrategy<BookLevelEvent> bookWm = WatermarkStrategy.<BookLevelEvent>forBoundedOutOfOrderness(outOfOrder)
+          .withTimestampAssigner((b, ts) -> b.eventTsUs / 1000)
+          .withIdleness(idle);
+      DataStream<RowData> bookRows = env
+          .fromSource(source(brokers, "book.v1" + suffix, group, new Deserializers.Books()), bookWm, "book.v1")
+          .uid("src-book").name("book.v1")
+          .map(Rows::book)
+          .returns(InternalTypeInfo.of(FlinkSchemaUtil.convert(Lakehouse.BOOK_DELTAS)))
+          .uid("rows-book").name("to RowData: book_deltas");
+      FlinkSink.forRowData(bookRows).tableLoader(bookTable).writeParallelism(1)
+          .uidPrefix("sink-book-deltas").append();
+    }
 
     // Top-of-book checkpoints every 10 s, so "the book at time T" is a bounded lookup.
     WatermarkStrategy<BookMsg> bookMsgWm = WatermarkStrategy.<BookMsg>forBoundedOutOfOrderness(outOfOrder)
@@ -111,18 +116,21 @@ public class LakehouseJob {
     FlinkSink.forRowData(snapshotRows).tableLoader(snapshotsTable).writeParallelism(1)
         .uidPrefix("sink-book-snapshots").append();
 
-    // Gap lifecycle events, for the gap ledger mart.
-    DataStream<RowData> gapRows = env
-        .fromSource(source(brokers, "gaps.v1" + suffix, group, new Deserializers.Gaps()),
-            WatermarkStrategy.<GapRecord>noWatermarks(), "gaps.v1")
-        .uid("src-gaps").name("gaps.v1")
-        .map(Rows::gap)
-        .returns(InternalTypeInfo.of(FlinkSchemaUtil.convert(Lakehouse.GAP_EVENTS)))
-        .uid("rows-gaps").name("to RowData: gap_events");
-    FlinkSink.forRowData(gapRows).tableLoader(gapsTable).writeParallelism(1)
-        .uidPrefix("sink-gap-events").append();
+    if (!snapshotsOnly) {
+      // Gap lifecycle events, for the gap ledger mart.
+      DataStream<RowData> gapRows = env
+          .fromSource(source(brokers, "gaps.v1" + suffix, group, new Deserializers.Gaps()),
+              WatermarkStrategy.<GapRecord>noWatermarks(), "gaps.v1")
+          .uid("src-gaps").name("gaps.v1")
+          .map(Rows::gap)
+          .returns(InternalTypeInfo.of(FlinkSchemaUtil.convert(Lakehouse.GAP_EVENTS)))
+          .uid("rows-gaps").name("to RowData: gap_events");
+      FlinkSink.forRowData(gapRows).tableLoader(gapsTable).writeParallelism(1)
+          .uidPrefix("sink-gap-events").append();
+    }
 
-    env.execute(Lakehouse.NAMESPACE.equals(namespace) ? "tidemark-lakehouse" : "tidemark-lakehouse-" + namespace);
+    String name = Lakehouse.NAMESPACE.equals(namespace) ? "tidemark-lakehouse" : "tidemark-lakehouse-" + namespace;
+    env.execute(snapshotsOnly ? name + "-book-snapshots" : name);
   }
 
   static <T> KafkaSource<T> source(String brokers, String topic, String group, KafkaRecordDeserializationSchema<T> d) {

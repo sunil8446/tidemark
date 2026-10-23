@@ -24,6 +24,7 @@ import os
 import statistics
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import anthropic
@@ -39,28 +40,66 @@ import judge  # noqa: E402
 GATE = {"accuracy": 0.80, "groundedness": 0.95}
 
 
-async def one(client, app_factory, item, sem, fixtures_dir, record):
+CASE_TIMEOUT_S = 1800
+BACKEND_ERROR = "Error executing tool"  # MCP's text for an unexpected exception (a query error is JSON)
+
+
+LIMIT_HIT = asyncio.Event()  # a Claude plan's usage limit: stop starting cases, resume later
+LIMIT_TEXT = ("hit your session limit", "usage limit", "rate limit")
+
+
+async def one(client, app_factory, item, sem, fixtures_dir, record, done_log):
     async with sem:
-        async with app_factory(item) as (app, tools):
-            t0 = time.monotonic()
-            out = await investigate_alert(app, item["alert_id"], item["stream"])
-            out["latency_s"] = round(time.monotonic() - t0, 2)
-            if record and isinstance(tools, RecordingTools):
-                (fixtures_dir / (item["alert_id"].replace(":", "_") + ".json")).write_text(
-                    json.dumps(tools.recorded, sort_keys=True))
-            if out.get("verdict"):
-                log = [{"id": c["id"], "name": c["name"], "input": c["input"],
-                        "output": await tools.call(c["name"], c["input"])} for c in out["tool_calls"]]
-                alert = json.loads(await tools.call("get_alert", {"alert_id": item["alert_id"], "stream": item["stream"]}))
-                try:
-                    g, resp = await judge.grade(client, alert, log, out["verdict"])
-                    out["judge"] = g.model_dump()
-                    out["judge_usage"] = {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens}
-                except Exception as e:  # a failed grade is reported, not fatal to the run
-                    out["judge_error"] = str(e)[:300]
-            out["label"] = item.get("label")
-            out["source"] = item.get("source")
-            return out
+        if LIMIT_HIT.is_set():
+            return {"alert_id": item["alert_id"], "stream": item["stream"], "verdict": None,
+                    "error": "skipped: usage limit reached earlier in this run", "usage": {"cost_usd": 0.0},
+                    "label": item.get("label"), "source": item.get("source"), "latency_s": 0.0}
+        t0 = time.monotonic()
+        try:
+            out = await asyncio.wait_for(investigate_and_grade(client, app_factory, item, fixtures_dir, record),
+                                         CASE_TIMEOUT_S)
+        except Exception as e:  # one stuck or broken case must not sink the run
+            out = {"alert_id": item["alert_id"], "stream": item["stream"], "verdict": None,
+                   "error": f"{type(e).__name__}: {str(e)[:300]}", "usage": {"cost_usd": 0.0},
+                   "traceback": traceback.format_exc(limit=-6)}
+        if any(t in str(out.get("error")).lower() for t in LIMIT_TEXT):
+            LIMIT_HIT.set()
+            print(f"usage limit reached: {out['error']}", flush=True)
+        out.setdefault("latency_s", round(time.monotonic() - t0, 2))
+        out["label"] = item.get("label")
+        out["source"] = item.get("source")
+        with done_log.open("a") as f:  # results survive an interrupted run; reruns skip these cases
+            f.write(json.dumps(out, default=str) + "\n")
+        return out
+
+
+async def investigate_and_grade(client, app_factory, item, fixtures_dir, record):
+    async with app_factory(item) as (app, tools):
+        t0 = time.monotonic()
+        out = await investigate_alert(app, item["alert_id"], item["stream"])
+        out["latency_s"] = round(time.monotonic() - t0, 2)
+        if out.get("verdict"):
+            log = [{"id": c["id"], "name": c["name"], "input": c["input"],
+                    "output": await tools.call(c["name"], c["input"])} for c in out["tool_calls"]]
+            broken = [t["name"] for t in log if t["output"].startswith(BACKEND_ERROR)]
+            if broken:
+                # The data stack failed mid-case (e.g. Trino restarting): not the agent's fault, and
+                # neither the investigation nor a grade is trustworthy. Retried on the next run.
+                out["unscored_verdict"], out["verdict"] = out["verdict"], None
+                out["error"] = f"tool backend error during case: {broken}"
+                return out
+            alert = json.loads(await tools.call("get_alert", {"alert_id": item["alert_id"], "stream": item["stream"]}))
+            try:
+                g, resp = await judge.grade(client, alert, log, out["verdict"])
+                out["judge"] = g.model_dump()
+                out["judge_usage"] = {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens}
+            except Exception as e:  # a failed grade is reported, not fatal to the run
+                out["judge_error"] = str(e)[:300]
+        # Written last, so the fixture holds every tool result the agent and the judge used.
+        if record and isinstance(tools, RecordingTools):
+            (fixtures_dir / (item["alert_id"].replace(":", "_") + ".json")).write_text(
+                json.dumps(tools.recorded, sort_keys=True))
+        return out
 
 
 def summarize(results: list[dict]) -> dict:
@@ -70,7 +109,7 @@ def summarize(results: list[dict]) -> dict:
     g = [r["grounding"]["groundedness"] for r in done]
     cs = [r["grounding"]["claim_support"] for r in done]
     j = [r["judge"]["overall_pass"] for r in done if r.get("judge")]
-    cost = [r["usage"]["cost_usd"] for r in results]
+    cost = [r["usage"].get("cost_usd", 0.0) for r in results]
     lat = [r["latency_s"] for r in results]
     by_src = {}
     for r in labelled:
@@ -102,21 +141,38 @@ async def main() -> int:
     ap.add_argument("--gate", action="store_true")
     ap.add_argument("--backend", choices=["api", "cli"], default="api",
                     help="api: Claude API key; cli: the Claude Code CLI on a Claude subscription")
+    ap.add_argument("--fresh", action="store_true", help="ignore results of an earlier, interrupted run")
     a = ap.parse_args()
     items = [json.loads(l) for l in open(a.set) if l.strip()][: a.limit]
+    eval_dir = Path(os.path.expanduser("~/.tidemark-data/eval"))
+    eval_dir.mkdir(parents=True, exist_ok=True)
+    done_log = eval_dir / f"progress-{Path(a.set).stem}-{a.backend}.jsonl"
+    if a.fresh:
+        done_log.unlink(missing_ok=True)
+    previous = {}
+    if done_log.exists():
+        for line in done_log.read_text().splitlines():
+            r = json.loads(line)
+            if r.get("verdict"):
+                previous[r["alert_id"]] = r  # cases without a verdict are retried
+    todo = [it for it in items if it["alert_id"] not in previous]
+    print(f"{len(items) - len(todo)} cases done in an earlier run, {len(todo)} to go", flush=True)
     client = ClaudeCli(MODEL, EFFORT) if a.backend == "cli" else anthropic.AsyncAnthropic()
+
+    # One MCP connection for the whole run: opening and closing one per case hung in the stdio
+    # client's shutdown, and each connection costs a server process.
+    shared: list[McpTools] = []
 
     class Live:
         def __init__(self, item):
             self.item = item
 
         async def __aenter__(self):
-            self.mcp = await McpTools().__aenter__()
-            self.tools = RecordingTools(self.mcp) if a.record else self.mcp
+            self.tools = RecordingTools(shared[0]) if a.record else shared[0]
             return build(client, self.tools), self.tools
 
         async def __aexit__(self, *exc):
-            await self.mcp.__aexit__(*exc)
+            pass
 
     class Replay:
         def __init__(self, item):
@@ -133,12 +189,15 @@ async def main() -> int:
     if a.record:
         a.fixtures.mkdir(parents=True, exist_ok=True)
     sem = asyncio.Semaphore(a.concurrency)
-    results = await asyncio.gather(*(one(client, factory, it, sem, a.fixtures, a.record) for it in items))
+    if factory is Live and todo:
+        shared.append(await McpTools().__aenter__())
+    fresh = await asyncio.gather(*(one(client, factory, it, sem, a.fixtures, a.record, done_log) for it in todo))
+    by_id = {**previous, **{r["alert_id"]: r for r in fresh}}
+    results = [by_id[it["alert_id"]] for it in items]
     summary = summarize(results)
     summary["backend"] = a.backend
     summary["model"] = MODEL
-    out = Path(os.path.expanduser("~/.tidemark-data/eval")) / f"agent-{int(time.time())}.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
+    out = eval_dir / f"agent-{int(time.time())}.json"
     out.write_text(json.dumps({"summary": summary, "results": results}, indent=1, default=str))
     print(json.dumps(summary, indent=2))
     print("details:", out)
@@ -153,5 +212,13 @@ async def main() -> int:
     return 0
 
 
+async def main_and_exit() -> None:
+    rc = await main()
+    sys.stdout.flush()
+    # Exit from inside the loop: asyncio.run's teardown of the shared MCP stdio client hangs
+    # (anyio cancel scopes exited from another task).
+    os._exit(rc)
+
+
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    asyncio.run(main_and_exit())
