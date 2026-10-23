@@ -23,6 +23,7 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 /**
@@ -56,6 +57,13 @@ public class DetectorsJob {
     }
     env.getConfig().setGlobalJobParameters(p);
     env.enableCheckpointing(p.getLong("checkpoint-ms", 30_000), CheckpointingMode.EXACTLY_ONCE);
+    CheckpointConfig cc = env.getCheckpointConfig();
+    // Keep checkpoints when the job is cancelled, so it can always be restored (it can be
+    // impossible to take a savepoint from a job that is struggling), and checkpoint
+    // unaligned so barriers do not queue behind a catch-up backlog.
+    cc.setExternalizedCheckpointCleanup(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
+    cc.enableUnalignedCheckpoints();
+    cc.setTolerableCheckpointFailureNumber(5);
 
     WatermarkStrategy<TradeEvent> tradeWm = WatermarkStrategy.<TradeEvent>forBoundedOutOfOrderness(outOfOrder)
         .withTimestampAssigner((t, ts) -> t.eventTsUs / 1000).withIdleness(idle);

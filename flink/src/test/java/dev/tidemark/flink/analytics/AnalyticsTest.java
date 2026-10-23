@@ -93,4 +93,31 @@ class AnalyticsTest {
       assertTrue(h.extractOutputValues().isEmpty(), "kraken price is 20 s old; no spread expected");
     }
   }
+
+  @Test
+  void spreadIsSampledInTradeTimeAndHistoryStaysSmallWithoutAWatermark() throws Exception {
+    // The bug: with a lagging watermark no tick ever fired, the per-venue history grew without
+    // bound and every trade re-copied it. Without any watermark, ticks must still be sampled once
+    // trade time is past them by the lateness, exactly once each, and the history must stay short.
+    try (var h = new KeyedOneInputStreamOperatorTestHarness<String, TradeEvent, Spread>(
+        new KeyedProcessOperator<>(new Spread.Fn(60_000, 5_000)), e -> e.productId, Types.STRING)) {
+      h.open();
+      for (int i = 0; i < 600; i++) { // 10 minutes of trades, one per second per venue, no watermark
+        long ts = 1_000 + i * 1_000L + 200;
+        h.processElement(new StreamRecord<>(t("coinbase", i, "100.0", "1", ts, "buy"), ts));
+        h.processElement(new StreamRecord<>(t("kraken", i, "99.0", "1", ts + 100, "buy"), ts + 100));
+      }
+      List<Spread> out = h.extractOutputValues();
+      // Ticks 2 s .. (last trade 600.3 s - 5 s lateness) are final: 2..595 s.
+      assertEquals(594, out.size());
+      assertEquals(2_000, out.get(0).tsMs);
+      assertEquals(595_000, out.get(out.size() - 1).tsMs);
+      for (int i = 1; i < out.size(); i++) {
+        assertEquals(out.get(i - 1).tsMs + 1_000, out.get(i).tsMs); // each tick once, in order
+      }
+      // A late watermark afterwards must not re-emit ticks that were already sampled.
+      h.processWatermark(590_000);
+      assertEquals(594, h.extractOutputValues().size());
+    }
+  }
 }

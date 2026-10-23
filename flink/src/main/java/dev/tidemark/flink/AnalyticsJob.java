@@ -16,6 +16,7 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
@@ -47,6 +48,13 @@ public class AnalyticsJob {
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.getConfig().setGlobalJobParameters(p);
     env.enableCheckpointing(p.getLong("checkpoint-ms", 30_000), CheckpointingMode.EXACTLY_ONCE);
+    CheckpointConfig cc = env.getCheckpointConfig();
+    // Keep checkpoints when the job is cancelled, so it can always be restored (it can be
+    // impossible to take a savepoint from a job that is struggling), and checkpoint
+    // unaligned so barriers do not queue behind a catch-up backlog.
+    cc.setExternalizedCheckpointCleanup(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
+    cc.enableUnalignedCheckpoints();
+    cc.setTolerableCheckpointFailureNumber(5);
 
     WatermarkStrategy<TradeEvent> wm = WatermarkStrategy.<TradeEvent>forBoundedOutOfOrderness(outOfOrder)
         .withTimestampAssigner((t, ts) -> t.eventTsUs / 1000)
