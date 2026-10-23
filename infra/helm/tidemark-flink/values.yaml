@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/REPLACE_ME/tidemark-flink
+  repository: ghcr.io/sunil8446/tidemark-flink
   tag: "0.3.0"
 
 flinkVersion: v1_20

@@ -1,8 +1,9 @@
 # App of apps. Apply once after installing ArgoCD:
 #   kubectl apply -n argocd -f infra/argocd/root.yaml
 # Every other component is an Application under infra/argocd/apps, synced
-# automatically from Git. Replace REPLACE_ME with the GitHub owner once the
-# public repo exists.
+# automatically from Git (github.com/sunil8446/tidemark). The S3 bucket names
+# in the Helm values (REPLACE_ME-lake, REPLACE_ME-checkpoints) come from the
+# Terraform outputs once the AWS environment exists.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -11,7 +12,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/REPLACE_ME/tidemark.git
+    repoURL: https://github.com/sunil8446/tidemark.git
     targetRevision: main
     path: infra/argocd/apps
   destination:

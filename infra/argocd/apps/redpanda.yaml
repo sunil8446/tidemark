@@ -13,7 +13,7 @@ spec:
       targetRevision: 25.1.1
       helm:
         valueFiles: [$values/infra/helm/values/redpanda.yaml]
-    - repoURL: https://github.com/REPLACE_ME/tidemark.git
+    - repoURL: https://github.com/sunil8446/tidemark.git
       targetRevision: main
       ref: values
   destination:

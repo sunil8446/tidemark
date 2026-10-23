@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/REPLACE_ME/tidemark-go
+  repository: ghcr.io/sunil8446/tidemark-go
   tag: "0.3.0"
   pullPolicy: IfNotPresent
 

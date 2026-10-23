@@ -13,7 +13,7 @@ spec:
       targetRevision: 1.40.0
       helm:
         valueFiles: [$values/infra/helm/values/trino.yaml]
-    - repoURL: https://github.com/REPLACE_ME/tidemark.git
+    - repoURL: https://github.com/sunil8446/tidemark.git
       targetRevision: main
       ref: values
   destination:
