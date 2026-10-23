@@ -18,6 +18,7 @@ import dev.tidemark.flink.model.TradeEvent;
 import java.time.Duration;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.streaming.api.CheckpointingMode;
@@ -47,6 +48,12 @@ public class DetectorsJob {
     Duration idle = Duration.ofSeconds(p.getLong("idle-s", 30));
 
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    if (p.has("state-backend")) {
+      // hashmap for evaluation runs: detector state is small and heap state is several times faster than RocksDB.
+      Configuration conf = new Configuration();
+      conf.setString("state.backend.type", p.get("state-backend"));
+      env.configure(conf);
+    }
     env.getConfig().setGlobalJobParameters(p);
     env.enableCheckpointing(p.getLong("checkpoint-ms", 30_000), CheckpointingMode.EXACTLY_ONCE);
 

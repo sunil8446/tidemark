@@ -9,3 +9,4 @@ One page each: the decision, the alternatives, and why. Copy [0000-template.md](
 | [0003](0003-protobuf-over-avro.md) | Use Protobuf rather than Avro for event schemas | Accepted | 1 |
 | [0004](0004-flink-over-spark-streaming.md) | Use Flink (1.20 LTS) rather than Spark Structured Streaming | Accepted | 2 |
 | [0005](0005-iceberg-over-delta.md) | Use Apache Iceberg rather than Delta Lake | Accepted | 2 |
+| [0006](0006-detector-evaluation.md) | Evaluate detectors against labelled injections, choose thresholds by alert budget | Accepted | 3 |

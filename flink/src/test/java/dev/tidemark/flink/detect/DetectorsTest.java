@@ -208,6 +208,18 @@ class DetectorsTest {
   }
 
   @Test
+  void pullIsDetectedEvenWhenOtherOrdersJoinedTheLevel() throws Exception {
+    try (var h = spoof()) {
+      // 20 added behind 1 at 99.9; real orders then add 6 more; the 20 is cancelled in one update.
+      h.processElement1(new StreamRecord<>(book(false, 2_000, new String[][] {{"99.9", "21"}}, new String[][] {}), 2_000));
+      h.processElement1(new StreamRecord<>(book(false, 3_000, new String[][] {{"99.9", "27"}}, new String[][] {}), 3_000));
+      h.processElement1(new StreamRecord<>(book(false, 5_000, new String[][] {{"99.9", "7"}}, new String[][] {}), 5_000));
+      h.processBothWatermarks(new org.apache.flink.streaming.api.watermark.Watermark(7_000));
+      assertEquals(1, h.extractOutputValues().size(), "a 20-lot drop is a pull even though the level kept 7");
+    }
+  }
+
+  @Test
   void spoofIgnoresRepricingAndFlicker() throws Exception {
     try (var h = spoof()) {
       // Amend: 20 pulled from 99.9 and re-added at 99.8 within the repricing window.

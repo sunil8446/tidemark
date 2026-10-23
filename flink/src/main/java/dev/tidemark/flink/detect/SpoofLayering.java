@@ -24,8 +24,10 @@ import org.apache.flink.util.Collector;
  * resting in the top levels. Spoofing works by distorting visible depth, and
  * a share-of-depth yardstick is not fooled by dust levels the way a median
  * level size is (evaluation found most early false positives were ordinary
- * orders scored against 0.002 BTC dust). "Pulled" means the
- * level's quantity fell back by at least {@code pulledFraction} of the add.
+ * orders scored against 0.002 BTC dust). "Pulled" means one
+ * update removed at least {@code pulledFraction} of the added size from the
+ * level (other orders may have joined it meanwhile), or the level fell back to
+ * about its size before the add.
  * "Almost none traded" uses price-time priority: a new order joins the back
  * of the queue at its price, so trades there only reach it once the quantity
  * resting ahead of it is used up. The order counts as filled by
@@ -74,6 +76,7 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
     public double medianLevel;
     public long pulledTsMs; // 0 while resting
     public double remaining;
+    public double lastLevel; // last level size seen at this price, kept even if the level drifts out of depth
 
     public Candidate() {}
   }
@@ -148,7 +151,14 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
       }
       String key = sideName + "@" + price;
       Candidate c = candidates.get(key);
-      if (c != null && c.pulledTsMs == 0 && now <= c.levelBefore + c.added * (1 - pulledFraction)) {
+      double last = c == null ? prev : Math.max(prev, c.lastLevel);
+      boolean pulled = c != null && c.pulledTsMs == 0
+          && (last - now >= pulledFraction * c.added || now <= c.levelBefore + c.added * (1 - pulledFraction));
+      if (c != null && !pulled) {
+        c.lastLevel = now;
+        candidates.put(key, c);
+      }
+      if (pulled) {
         long life = ts - c.addTsMs;
         double filled = Math.max(0, c.tradedAtLevel - c.levelBefore);
         if (filled >= maxTradedFraction * c.added || life > maxLifeMs || life < minLifeMs) {
@@ -181,6 +191,7 @@ public class SpoofLayering extends KeyedCoProcessFunction<String, BookMsg, Trade
           n.addTsMs = ts;
           n.rank = rank;
           n.medianLevel = depthOthers;
+          n.lastLevel = now;
           candidates.put(key, n);
           ctx.timerService().registerEventTimeTimer(ts + maxLifeMs + 1);
         }

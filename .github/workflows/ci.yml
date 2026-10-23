@@ -1,0 +1,98 @@
+name: ci
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - run: buf lint
+      - name: buf breaking (PRs only)
+        if: github.event_name == 'pull_request'
+        run: buf breaking --against "https://github.com/${{ github.repository }}.git#branch=${{ github.base_ref }}"
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test -race ./...
+      - name: Kafka integration (Redpanda via testcontainers)
+        run: go test -tags integration -count=1 ./ingest/sink/
+
+  flink:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17", cache: maven }
+      - run: mvn -B -f flink/pom.xml -Dtidemark.build.dir=target verify
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: cd mcp-server && uv sync && uv run pytest -q
+      - run: cd agent && uv sync && uv run pytest -q
+
+  dbt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: dbt parse (models, tests and contracts compile)
+        run: |
+          uv tool install --python 3.12 dbt-core --with dbt-trino
+          cd dbt && dbt parse --profiles-dir .
+
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive infra/terraform
+      - run: cd infra/terraform/envs/dev && terraform init -backend=false && terraform validate
+      - uses: azure/setup-helm@v4
+      - run: for c in infra/helm/tidemark-*; do helm lint "$c"; done
+      - name: kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          for c in infra/helm/tidemark-*; do helm template t "$c"; done | ./kubeconform -strict -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+      - name: promtool
+        run: docker run --rm -v "$PWD/deploy/prometheus:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v3.5.0 check config /etc/prometheus/prometheus.yml
+
+  # Runs the investigator on a fixed subset with recorded tool results, so it
+  # needs only the Claude API, not the data stack. Fails the PR if triage
+  # accuracy or groundedness drops below the thresholds in evals/run_eval.py.
+  agent-eval:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changed
+        with:
+          filters: |
+            agent:
+              - 'agent/**'
+              - 'evals/**'
+              - 'mcp-server/**'
+      - uses: astral-sh/setup-uv@v6
+        if: steps.changed.outputs.agent == 'true'
+      - name: eval gate
+        if: steps.changed.outputs.agent == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cd agent && uv sync
+          uv run python ../evals/run_eval.py --set ../evals/ci_subset.jsonl --fixtures ../evals/fixtures --gate --concurrency 4

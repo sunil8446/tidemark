@@ -6,6 +6,7 @@
 package main
 
 import (
+	"container/heap"
 	"context"
 	"errors"
 	"flag"
@@ -18,7 +19,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -114,11 +114,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	start := time.Now()
-	var wg sync.WaitGroup
-	var frames atomic.Int64
-	for v, fs := range byVenue {
-		slices.Sort(fs)
+	pipes := map[string]*pipeline.Pipeline{}
+	for v := range byVenue {
 		var feed venue.Feed
 		switch v {
 		case "coinbase":
@@ -129,31 +126,32 @@ func main() {
 			slog.Error("unknown venue in file name", "venue", v)
 			os.Exit(2)
 		}
-		p := pipeline.New(feed, counted, m, pipeline.Options{
+		pipes[v] = pipeline.New(feed, counted, m, pipeline.Options{
 			Source:    pb.Source_SOURCE_REPLAY,
 			IngestID:  "replay",
 			TrackGaps: !*raw,
 		})
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for i := range *loop {
-				clock := start // venues share one timeline; later loops restart it
-				if i > 0 {
-					clock = time.Now()
-				}
-				for _, f := range fs {
-					n, err := play(ctx, f, p, t0, clock, *speed)
-					frames.Add(n)
-					if err != nil {
-						slog.Error("replay", "file", f, "err", err)
-						return
-					}
-				}
-			}
-		}()
 	}
-	wg.Wait()
+
+	// One goroutine, one merged stream: frames from every venue are replayed
+	// in global receive-time order, exactly as live ingestion saw them. (Per-venue
+	// goroutines let the smaller recording run hours ahead at max speed, which
+	// broke anything that relates venues or follows a shared clock, such as the
+	// injector.)
+	start := time.Now()
+	var frames atomic.Int64
+	for i := range *loop {
+		clock := start
+		if i > 0 {
+			clock = time.Now()
+		}
+		n, err := playMerged(ctx, byVenue, pipes, t0, clock, *speed)
+		frames.Add(n)
+		if err != nil {
+			slog.Error("replay", "err", err)
+			break
+		}
+	}
 	fctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	if err := out.Flush(fctx); err != nil {
@@ -171,26 +169,78 @@ func main() {
 		elapsed.Round(time.Millisecond), float64(n)/elapsed.Seconds())
 }
 
-// play streams one file. With speed > 0 each frame is delayed so that
-// (frame time - t0) / speed matches wall-clock time since start.
-func play(ctx context.Context, path string, p *pipeline.Pipeline, t0 int64, start time.Time, speed float64) (int64, error) {
-	r, err := record.Open(path)
-	if err != nil {
-		return 0, err
-	}
-	defer r.Close()
-	var n int64
+// venueStream reads one venue's recordings in file order.
+type venueStream struct {
+	venue string
+	files []string
+	r     *record.Reader
+	next  record.Line
+}
+
+func (v *venueStream) advance() (bool, error) {
 	for {
+		if v.r == nil {
+			if len(v.files) == 0 {
+				return false, nil
+			}
+			r, err := record.Open(v.files[0])
+			if err != nil {
+				return false, err
+			}
+			v.r, v.files = r, v.files[1:]
+		}
+		l, err := v.r.Next()
+		if errors.Is(err, io.EOF) {
+			v.r.Close()
+			v.r = nil
+			continue
+		}
+		if err != nil {
+			return false, err
+		}
+		v.next = l
+		return true, nil
+	}
+}
+
+type streamHeap []*venueStream
+
+func (h streamHeap) Len() int           { return len(h) }
+func (h streamHeap) Less(i, j int) bool { return h[i].next.T < h[j].next.T }
+func (h streamHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *streamHeap) Push(x any)        { *h = append(*h, x.(*venueStream)) }
+func (h *streamHeap) Pop() any {
+	old := *h
+	x := old[len(old)-1]
+	*h = old[:len(old)-1]
+	return x
+}
+
+// playMerged replays all venues as one stream ordered by receive time. With
+// speed > 0 each frame is delayed so that (frame time - t0) / speed matches
+// wall-clock time since start.
+func playMerged(ctx context.Context, byVenue map[string][]string, pipes map[string]*pipeline.Pipeline,
+	t0 int64, start time.Time, speed float64) (int64, error) {
+	h := &streamHeap{}
+	for v, fs := range byVenue {
+		sorted := slices.Clone(fs)
+		slices.Sort(sorted)
+		s := &venueStream{venue: v, files: sorted}
+		ok, err := s.advance()
+		if err != nil {
+			return 0, err
+		}
+		if ok {
+			heap.Push(h, s)
+		}
+	}
+	var n int64
+	for h.Len() > 0 {
 		if ctx.Err() != nil {
 			return n, ctx.Err()
 		}
-		l, err := r.Next()
-		if errors.Is(err, io.EOF) {
-			return n, nil
-		}
-		if err != nil {
-			return n, err
-		}
+		s := (*h)[0]
+		l := s.next
 		if speed > 0 {
 			due := start.Add(time.Duration(float64(l.T-t0) / speed))
 			if d := time.Until(due); d > 0 {
@@ -201,9 +251,19 @@ func play(ctx context.Context, path string, p *pipeline.Pipeline, t0 int64, star
 				}
 			}
 		}
-		p.HandleFrame(l.F, time.Now())
+		pipes[s.venue].HandleFrame(l.F, time.Now())
 		n++
+		ok, err := s.advance()
+		if err != nil {
+			return n, err
+		}
+		if ok {
+			heap.Fix(h, 0)
+		} else {
+			heap.Pop(h)
+		}
 	}
+	return n, nil
 }
 
 // span returns the first and last frame times across files.

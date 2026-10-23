@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -47,6 +48,7 @@ func main() {
 		budget  = flag.Float64("budget-per-hour", 6, "max unlabelled alerts per hour per detector at the chosen threshold")
 		out     = flag.String("out", "", "write the markdown report here (default stdout)")
 		fixed   = flag.String("fixed", "", "score at these thresholds instead of choosing (held-out test), e.g. volume_spike=12,dislocation=4.6")
+		emitSet = flag.String("emit-set", "", "write the alerts at or above the chosen/fixed thresholds as an agent eval set (JSONL)")
 	)
 	flag.Parse()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -83,6 +85,7 @@ func main() {
 	fmt.Fprintf(&sb, "Labels: %d injected patterns. Alerts: %d distinct firings. Stream time covered: %.2f h.\n\n", len(labels), len(alerts), hours)
 
 	detectors := []string{"volume_spike", "spoof_layering", "dislocation", "wash_trade"}
+	var evalSet []map[string]string
 	fmt.Fprintln(&sb, "## Operating points")
 	fmt.Fprintln(&sb)
 	if *fixed != "" {
@@ -108,6 +111,18 @@ func main() {
 		if best == nil {
 			fmt.Fprintf(&sb, "| %s | %d | — | 0 | 0 | 0 | — | 0 | 0.00 | — |\n", d, len(ls))
 			continue
+		}
+		for j, al := range as {
+			if al.Score < best.threshold {
+				continue
+			}
+			item := map[string]string{"alert_id": al.AlertId, "stream": "inj", "detector": d}
+			if len(matches.byAlert[j]) > 0 {
+				item["label"], item["source"] = "escalate", "injected"
+			} else {
+				item["label"], item["source"] = "", "real_unlabelled" // to be hand-labelled
+			}
+			evalSet = append(evalSet, item)
 		}
 		fmt.Fprintf(&sb, "| %s | %d | %.3g | %d | %d | %.1f | %.3f | %d / %d | %.3f | %.3f |\n",
 			d, len(ls), best.threshold, best.tp, best.fp, float64(best.fp)/hours, best.precision, best.detected, len(ls), best.recall, best.f1)
@@ -159,6 +174,15 @@ func main() {
 		}
 	}
 	sb.WriteString(sections.String())
+	if *emitSet != "" {
+		var lines []string
+		for _, it := range evalSet {
+			b, _ := json.Marshal(it)
+			lines = append(lines, string(b))
+		}
+		must(os.WriteFile(*emitSet, []byte(strings.Join(lines, "\n")+"\n"), 0o644))
+		fmt.Fprintf(os.Stderr, "wrote %d eval-set items to %s\n", len(evalSet), *emitSet)
+	}
 
 	if *out == "" {
 		fmt.Print(sb.String())
