@@ -1,10 +1,28 @@
 # Gap report
 
-The Week 1 definition of done is a 24-hour unattended run. The first attempt (from 2026-10-22 07:58 UTC) was stopped after about 7 hours because the laptop was overheating under the full stack plus evaluation runs. The run was restarted at **2026-10-23 01:56 UTC** with CPU caps on the heaviest containers; this file is regenerated from it with:
+The Week 1 definition of done is a 24-hour unattended run. The first attempt (from 2026-10-22 07:58 UTC) was stopped after about 7 hours because the laptop was overheating under the full stack plus evaluation runs. The run was restarted at **2026-10-23 01:56 UTC** with CPU caps on the heaviest containers.
+
+## 24-hour run: 2026-10-23 01:56 → 2026-10-24 01:56 UTC
+
+**Result: 864,522 of 864,522 trade ids in Kafka (100.0000%), 0 missing; 2 duplicate records (removed by Flink's dedup before the lake).** Full generated report: [gaps-24h.md](gaps-24h.md), from
 
 ```bash
-python3 bench/gap_report.py --window 24h
+python3 bench/gap_report.py --window 24h --end 2026-10-24T01:56:00Z --out bench/gaps-24h.md
 ```
+
+It was **not fully unattended**, and the two incidents are the most useful thing the run produced:
+
+| When (UTC) | What happened | Recovery |
+|---|---|---|
+| 10-23 21:27 → 10-24 00:53 (3 h 26 m) | The host disk filled (2.9 GB free on 228 GB). The Docker VM got write I/O errors and froze: Redpanda, Flink, Trino, MinIO and Prometheus all stopped. 13 GB of the squeeze was stale Flink TaskManager working directories, one per crash or forced restart that day. | Docker restarted by hand; Flink jobs restored from retained checkpoints. The ingestor (on the host) kept running: once Kafka was back it detected 12 trade-id gaps and refilled **123,253 trades over REST in under 40 s per product**, none unrecoverable. |
+| 10-23 21:33 → 22:23 | For the first 50 minutes of that outage the ingestor still accepted trades but every produce failed (144,622 produce errors). The gap tracker had counted those ids as *seen*, so it reported every gap recovered while **20,235 trades were not in Kafka (97.66%)**. The hourly reconcile job missed them too: its fixed 2 h look-back had moved past the holes by the time Airflow came back. | Found by this report's independent Kafka audit (the reason it exists). `reconcile --window 8h` refetched all **20,237** over REST: 100%. |
+
+**Fixes**, so the same failure repairs itself next time:
+
+- `tidemark_ingest_trades_lost_total{venue,product}` counts trades whose produce failed, with a paging alert (`IngestTradesLost`). Repair stays with reconcile, which checks what Kafka actually holds; re-opening gaps inside the ingestor would loop while the broker is down.
+- `reconcile --catch-up 48h` (on by default) starts at the end of the last recorded run when that is older than its window, so scheduler downtime of up to two days is covered.
+- The TaskManager clears stale `/tmp/tm_*` working directories on start.
+- Known blind spot, stated in the report: Prometheus runs in Docker, so a Docker outage leaves no samples and does not lower "scrape availability" (99.92%).
 
 ## Fault-injection check (2026-10-22, before the 24 h run)
 

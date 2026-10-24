@@ -87,6 +87,7 @@ func (p *Pipeline) InitMetrics(products []string) {
 	statuses := []pb.GapStatus{pb.GapStatus_GAP_STATUS_RECOVERED, pb.GapStatus_GAP_STATUS_ABSENT_AT_SOURCE, pb.GapStatus_GAP_STATUS_UNRECOVERABLE}
 	for _, prod := range products {
 		p.m.GapTradesMissing.WithLabelValues(p.vname, prod)
+		p.m.TradesLost.WithLabelValues(p.vname, prod)
 		p.m.GapTradesFilled.WithLabelValues(p.vname, prod)
 		p.m.ChecksumFailures.WithLabelValues(p.vname, prod)
 		p.m.Duplicates.WithLabelValues(p.vname, prod)

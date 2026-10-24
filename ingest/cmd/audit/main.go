@@ -41,6 +41,7 @@ func main() {
 		since   = flag.Duration("since", 0, "only count trades with event time within this window (0 = all)")
 		settle  = flag.Duration("settle", 30*time.Second, "ignore the most recent trades (backfill may still be in flight)")
 		format  = flag.String("format", "text", "text or markdown")
+		until   = flag.String("until", "", "end the window at this time (RFC 3339) instead of now, e.g. to audit a finished run")
 	)
 	flag.Parse()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -67,11 +68,18 @@ func main() {
 	cl.AddConsumePartitions(assign)
 
 	now := time.Now()
+	hi := now.Add(-*settle)
+	if *until != "" {
+		end, err := time.Parse(time.RFC3339, *until)
+		if err != nil {
+			fail(fmt.Errorf("--until: %w", err))
+		}
+		now, hi = end, end
+	}
 	lo := time.Time{}
 	if *since > 0 {
 		lo = now.Add(-*since)
 	}
-	hi := now.Add(-*settle)
 	var h sr.ConfluentHeader
 	all := map[string]*stats{}
 	var records int

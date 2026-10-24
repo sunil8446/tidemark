@@ -29,6 +29,7 @@ type Metrics struct {
 	Reconnects       *prometheus.CounterVec   // venue, reason
 	Produced         *prometheus.CounterVec   // topic
 	ProduceErrors    *prometheus.CounterVec   // topic
+	TradesLost       *prometheus.CounterVec   // venue, product
 	ExchangeToKafka  *prometheus.HistogramVec // venue: exchange event time -> broker ack
 	RecorderDropped  *prometheus.CounterVec   // venue
 }
@@ -56,6 +57,8 @@ func New() *Metrics {
 		Reconnects:    f.counter("reconnects_total", "Session restarts, by reason.", "venue", "reason"),
 		Produced:      f.counter("produced_total", "Records acknowledged by Kafka.", "topic"),
 		ProduceErrors: f.counter("produce_errors_total", "Records that failed to produce.", "topic"),
+		TradesLost: f.counter("trades_lost_total", "Trades received but never acknowledged by Kafka. The gap tracker "+
+			"counts them as seen, so they are not reported as gaps; reconcile repairs them from the lake.", "venue", "product"),
 		ExchangeToKafka: f.histogram("exchange_to_kafka_seconds", "Exchange event timestamp to Kafka ack, live WS trades only. Includes clock skew between the venue and this host.",
 			[]float64{.005, .01, .025, .05, .075, .1, .15, .2, .3, .5, .75, 1, 2, 5, 10}, "venue"),
 		RecorderDropped: f.counter("recorder_dropped_total", "Frames the recorder could not keep up with.", "venue"),

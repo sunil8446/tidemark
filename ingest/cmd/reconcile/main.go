@@ -62,6 +62,8 @@ func main() {
 		repair   = flag.Bool("repair", true, "re-fetch missing ranges and produce them to Kafka")
 		maxIDs   = flag.Int64("max-ids", 200_000, "skip ranges larger than this (report only)")
 		record   = flag.Bool("record", true, "write the run to iceberg.ops.reconciliation_runs")
+		catchUp  = flag.Duration("catch-up", 48*time.Hour, "start at the end of the last recorded run if that is earlier than now-window "+
+			"(covers downtime of the scheduler itself), looking back at most this far; 0 disables")
 	)
 	flag.Parse()
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
@@ -77,6 +79,17 @@ func main() {
 	runID := time.Now().UTC().Format("20060102T150405Z")
 	hi := time.Now().UTC().Add(-*settle)
 	lo := hi.Add(-*window)
+	if *catchUp > 0 {
+		// A fixed look-back misses holes older than the window when the scheduler itself was down:
+		// after a 3.5 h outage the hourly 2 h window never saw the first 50 minutes of it.
+		if last, ok := lastRunEnd(ctx, db); ok && last.Before(lo) {
+			lo = last
+			if floor := hi.Add(-*catchUp); lo.Before(floor) {
+				lo = floor
+			}
+			slog.Info("catching up from the last recorded run", "from", lo.Format(time.RFC3339))
+		}
+	}
 	slog.Info("reconcile", "run", runID, "from", lo.Format(time.RFC3339), "to", hi.Format(time.RFC3339), "repair", *repair)
 
 	reports, ranges, err := scan(ctx, db, lo, hi)
@@ -235,6 +248,15 @@ ORDER BY 1, 2, 3`
 		ranges = append(ranges, r)
 	}
 	return reports, ranges, rows.Err()
+}
+
+// lastRunEnd is the end of the newest recorded run window, if any.
+func lastRunEnd(ctx context.Context, db *sql.DB) (time.Time, bool) {
+	var end sql.NullTime
+	if err := db.QueryRowContext(ctx, "SELECT max(window_end) FROM iceberg.ops.reconciliation_runs").Scan(&end); err != nil || !end.Valid {
+		return time.Time{}, false
+	}
+	return end.Time.UTC(), true
 }
 
 func recordRun(ctx context.Context, db *sql.DB, runID string, lo, hi time.Time, reps []*productReport) error {

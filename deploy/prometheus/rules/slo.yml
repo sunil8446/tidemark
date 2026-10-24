@@ -92,6 +92,12 @@ groups:
         expr: increase(tidemark_ingest_gaps_resolved_total{status="unrecoverable"}[15m]) > 0
         labels: { severity: page, slo: completeness }
         annotations: { summary: "{{ $labels.venue }} {{ $labels.product }}: a gap could not be backfilled" }
+      - alert: IngestTradesLost
+        # Trades acknowledged by the venue but never stored in Kafka (e.g. the broker was down).
+        # The gap tracker cannot see these; the reconcile job refetches them from the lake's view.
+        expr: increase(tidemark_ingest_trades_lost_total[15m]) > 0
+        labels: { severity: page, slo: completeness }
+        annotations: { summary: "{{ $labels.venue }} {{ $labels.product }}: trades lost on produce; reconcile must catch up" }
       - alert: IngestDisconnected
         expr: tidemark_ingest_connected == 0
         for: 2m

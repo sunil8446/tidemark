@@ -5,7 +5,7 @@ Two independent sources:
   1. Prometheus: what the ingestor saw (gaps detected/resolved, latency).
   2. `audit`: what actually landed in Kafka (missing ids, duplicates).
 
-Usage: bench/gap_report.py --window 24h [--prom http://localhost:9090] [--out bench/gaps.md]
+Usage: bench/gap_report.py --window 24h [--end 2026-10-24T01:56:00Z] [--prom http://localhost:9090] [--out bench/gaps.md]
 Standard library only.
 """
 import argparse
@@ -17,8 +17,14 @@ import urllib.parse
 import urllib.request
 
 
+END = None  # evaluate every query at this instant (RFC 3339) instead of now
+
+
 def prom(base, expr):
-    url = f"{base}/api/v1/query?" + urllib.parse.urlencode({"query": expr})
+    q = {"query": expr}
+    if END:
+        q["time"] = END
+    url = f"{base}/api/v1/query?" + urllib.parse.urlencode(q)
     with urllib.request.urlopen(url, timeout=30) as r:
         body = json.load(r)
     if body.get("status") != "success":
@@ -47,8 +53,11 @@ def main():
     ap.add_argument("--prom", default="http://localhost:9090")
     ap.add_argument("--out", default="bench/gaps.md")
     ap.add_argument("--brokers", default="localhost:19092")
+    ap.add_argument("--end", help="end the window here (RFC 3339, UTC) instead of now, to report a finished run")
     a = ap.parse_args()
     w, P = a.window, a.prom
+    global END
+    END = a.end
 
     detected = by(P, f"round(sum by (venue, kind) (increase(tidemark_ingest_gaps_detected_total[{w}])))", "venue", "kind")
     resolved = by(P, f"round(sum by (venue, kind, status) (increase(tidemark_ingest_gaps_resolved_total[{w}])))", "venue", "kind", "status")
@@ -62,12 +71,18 @@ def main():
            for q in ("0.5", "0.99")}
     up = scalar(P, f"avg_over_time(up{{job='ingest'}}[{w}])")
     produce_err = scalar(P, f"round(sum(increase(tidemark_ingest_produce_errors_total[{w}])))")
+    lost = by(P, f"round(sum by (venue) (increase(tidemark_ingest_trades_lost_total[{w}])))", "venue")
 
     venues = sorted({k[0] for k in list(detected) + list(trades)})
     now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    L = [f"# Gap report: last {w}", "", f"Generated {now} by `bench/gap_report.py --window {w}`.", ""]
-    L += [f"- Ingestor scrape availability over the window: **{up * 100:.2f}%**",
-          f"- Kafka produce errors: **{produce_err:.0f}**", ""]
+    span = f"the {w} ending {a.end}" if a.end else f"last {w}"
+    cmd = f"bench/gap_report.py --window {w}" + (f" --end {a.end}" if a.end else "")
+    L = [f"# Gap report: {span}", "", f"Generated {now} by `{cmd}`.", ""]
+    L += [f"- Ingestor scrape availability over the window: **{up * 100:.2f}%** (Prometheus runs in Docker: "
+          "an outage of Docker itself leaves no samples and does not lower this figure)",
+          f"- Kafka produce errors: **{produce_err:.0f}**; trades lost on produce (counted from 2026-10-24): "
+          f"**{sum(lost.values()):.0f}**. The gap tracker counts a trade as seen when it arrives, so trades lost on "
+          "produce are not gaps in the tables below; the Kafka audit at the end is the ground truth.", ""]
 
     L += ["## Gaps (ingestor view, Prometheus)", "",
           "| venue | kind | detected | recovered | absent at source | unrecoverable |", "|---|---|---:|---:|---:|---:|"]
@@ -102,7 +117,8 @@ def main():
     L += ["## Kafka audit (independent check of `trades.v1`)", ""]
     hours = w[:-1] + "h" if w.endswith("h") else w
     try:
-        audit = subprocess.run(["go", "run", "./ingest/cmd/audit", "--since", hours, "--format", "markdown", "--brokers", a.brokers],
+        audit = subprocess.run(["go", "run", "./ingest/cmd/audit", "--since", hours, "--format", "markdown", "--brokers", a.brokers]
+                               + (["--until", a.end] if a.end else []),
                                capture_output=True, text=True, timeout=900, check=True).stdout
         L.append(audit.strip())
     except Exception as e:  # report still useful without it

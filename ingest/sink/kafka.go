@@ -114,6 +114,11 @@ func (k *Kafka) produce(topic, key string, index []int, msg proto.Message, onAck
 		if err != nil {
 			k.m.ProduceErrors.WithLabelValues(topic).Inc()
 			slog.Error("produce failed", "topic", topic, "err", err)
+			if t, ok := msg.(*pb.Trade); ok {
+				// The tracker already counted this id as seen, so no gap will be reported for it.
+				// Count it: the run's completeness must not look perfect while trades are lost.
+				k.m.TradesLost.WithLabelValues(venue.Name(t.Venue), t.ProductId).Inc()
+			}
 			return
 		}
 		k.m.Produced.WithLabelValues(topic).Inc()
