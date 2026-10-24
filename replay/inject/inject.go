@@ -157,8 +157,8 @@ func (q *queue) Pop() any {
 
 type instrument struct {
 	lastPrice   string
-	lastSource  pb.Source // source of the last real trade, which synthetic trades copy
-	sizes       []float64 // recent real trade sizes (ring), so synthetic sizes look like the tape
+	lastSource  pb.Source  // source of the last real trade, which synthetic trades copy
+	sizes       []tapeSize // recent real trade sizes (ring), so synthetic sizes look like the tape
 	sizeAt      int
 	ids         map[uint64]uint64 // real trade id -> id on the injected stream
 	idNext      uint64            // next id on the injected stream (0 until the first real trade)
@@ -318,10 +318,11 @@ func (in *Injector) observeTrade(st *instrument, t *pb.Trade) {
 	s, _ := strconv.ParseFloat(t.Size, 64)
 	st.bucketNotnl += p * s
 	if s > 0 {
+		ts := tapeSize{value: s, raw: t.Size}
 		if len(st.sizes) < 256 {
-			st.sizes = append(st.sizes, s)
+			st.sizes = append(st.sizes, ts)
 		} else {
-			st.sizes[st.sizeAt] = s
+			st.sizes[st.sizeAt] = ts
 			st.sizeAt = (st.sizeAt + 1) % len(st.sizes)
 		}
 	}
@@ -426,12 +427,53 @@ func (in *Injector) renumber(st *instrument, t *pb.Trade) {
 	st.idNext++
 }
 
-// sizeLike draws a trade size from the instrument's recent real sizes (uniform fallback).
-func sizeLike(st *instrument, r *rand.Rand, fallback float64) float64 {
+// tapeSize is a real trade size and the string the venue printed it as.
+type tapeSize struct {
+	value float64
+	raw   string
+}
+
+// sizeLike draws a size from the instrument's recent real sizes, jittered independently so
+// synthetic trades neither repeat each other nor copy a real trade exactly (an earlier version
+// drew with replacement and scaled every size by one factor: exact sizes repeated within a
+// burst, which the investigator noticed). It returns the size and a real size string to copy
+// the venue's formatting from.
+func sizeLike(st *instrument, r *rand.Rand, fallback float64) (float64, string) {
 	if len(st.sizes) == 0 {
-		return fallback * logBetween(r, 0.3, 3)
+		return fallback * logBetween(r, 0.3, 3), ""
 	}
-	return st.sizes[r.IntN(len(st.sizes))]
+	t := st.sizes[r.IntN(len(st.sizes))]
+	return t.value * logBetween(r, 0.6, 1.6), t.raw
+}
+
+// formatLike prints v the way the venue printed like: the same number of significant decimals
+// (Coinbase prints "0.0125") and the same padded width (Kraken prints "0.01250000"). Decimals
+// grow if rounding would print zero; avoid is checked so a synthetic size never equals one
+// already used.
+func formatLike(v float64, like string, avoid map[string]bool) string {
+	raw, sig := 8, 8
+	if i := strings.IndexByte(like, '.'); i >= 0 {
+		raw = len(like) - i - 1
+		sig = len(strings.TrimRight(like, "0")) - i - 1
+	}
+	if sig < 2 {
+		sig = 2
+	}
+	for ; sig <= 8; sig++ {
+		out := strconv.FormatFloat(v, 'f', sig, 64)
+		if strings.Trim(out, "0.") == "" {
+			continue
+		}
+		if raw > sig {
+			out = strconv.FormatFloat(v, 'f', raw, 64)
+			out = out[:len(out)-(raw-sig)] + strings.Repeat("0", raw-sig)
+		}
+		if !avoid[out] {
+			avoid[out] = true
+			return out
+		}
+	}
+	return strconv.FormatFloat(v, 'f', 8, 64)
 }
 
 // rngFor is a deterministic per-injection source, so runs with the same plan are identical.
@@ -482,10 +524,15 @@ func (in *Injector) fire(inj Injection) {
 		r := rngFor(inj.ID)
 		n := 12 + r.IntN(19)
 		sizes := make([]float64, n)
+		like := make([]string, n)
 		sum := 0.0
 		for i := range sizes {
-			sizes[i] = sizeLike(st, r, target/price/float64(n))
+			sizes[i], like[i] = sizeLike(st, r, target/price/float64(n))
 			sum += sizes[i]
+		}
+		used := map[string]bool{}
+		for _, t := range st.sizes {
+			used[t.raw] = true // never print exactly a size the tape just printed
 		}
 		times := make([]int64, n)
 		for i := range times {
@@ -496,7 +543,7 @@ func (in *Injector) fire(inj Injection) {
 			side := pick(r, pb.Side_SIDE_BUY, pb.Side_SIDE_SELL)
 			size := sizes[i] * (target / price) / sum
 			in.push(pending{ts: times[i], trade: in.synthTrade(inj.Venue, inj.Product, st.lastPrice,
-				strconv.FormatFloat(size, 'f', 8, 64), side, times[i], "", "")})
+				formatLike(size, like[i], used), side, times[i], "", "")})
 		}
 		label.EndTsNs = at + int64(10*time.Second)
 		label.Params["target_notional"] = strconv.FormatFloat(target, 'f', 2, 64)
@@ -546,20 +593,22 @@ func (in *Injector) fire(inj Injection) {
 			return
 		}
 		price, _ := strconv.ParseFloat(st.lastPrice, 64)
-		size := math.Max(0.001, sizeLike(st, rngFor(inj.ID), 2000/price)) // a size the tape has seen
+		v, like := sizeLike(st, rngFor(inj.ID), 2000/price) // a size like the tape's
+		size := math.Max(0.001, v)
+		used := map[string]bool{}
 		a, b := "wash-"+inj.ID+"-a", "wash-"+inj.ID+"-b"
 		if inj.Params["round_trip"] < 0.5 {
 			in.push(pending{ts: at, trade: in.synthTrade(inj.Venue, inj.Product, st.lastPrice,
-				strconv.FormatFloat(size, 'f', 8, 64), pb.Side_SIDE_BUY, at, a, a)})
+				formatLike(size, like, used), pb.Side_SIDE_BUY, at, a, a)})
 			label.EndTsNs = at
 			label.Params["kind"] = "self_trade"
 		} else {
 			gap := int64(inj.Params["gap_ms"]) * int64(time.Millisecond)
 			back := size * (1 + inj.Params["size_jitter"])
 			in.push(pending{ts: at, trade: in.synthTrade(inj.Venue, inj.Product, st.lastPrice,
-				strconv.FormatFloat(size, 'f', 8, 64), pb.Side_SIDE_BUY, at, a, b)})
+				formatLike(size, like, used), pb.Side_SIDE_BUY, at, a, b)})
 			in.push(pending{ts: at + gap, trade: in.synthTrade(inj.Venue, inj.Product, st.lastPrice,
-				strconv.FormatFloat(back, 'f', 8, 64), pb.Side_SIDE_SELL, at+gap, b, a)})
+				formatLike(back, like, used), pb.Side_SIDE_SELL, at+gap, b, a)})
 			label.EndTsNs = at + gap
 			label.Params["kind"] = "round_trip"
 		}

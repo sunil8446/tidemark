@@ -135,7 +135,7 @@ The first run's volume-spike result (6 / 6) leaned on injector artefacts. After 
 Groundedness 0.997 (23 / 25 fully grounded), claim support 1.00, judge pass 0.92, 58 s p50 per case.
 
 - **This is the honest volume-spike number: 0.74, down from 1.00.** Most hits now rest on the injected pattern itself (two-sided prints at one fixed price while the rest of the market moves) rather than on artefacts.
-- **One artefact remains.** Synthetic sizes are drawn *with replacement* from the last 256 real sizes and all scaled by one factor, so exact sizes repeat within a burst and echo earlier real trades; 3 of 19 case files cite repeated exact sizes. Next fix: jitter each size independently.
+- **One artefact remains.** Synthetic sizes are drawn *with replacement* from the last 256 real sizes and all scaled by one factor, so exact sizes repeat within a burst and echo earlier real trades; 3 of 19 case files cite repeated exact sizes. Fixed in code (2026-10-24): each size is jittered independently, never equals a size already used or one the tape just printed, and is printed with the venue's formatting (Kraken pads to 8 decimals; Coinbase prints only significant decimals, where synthetic sizes had always shown 8). Not yet re-measured.
 - **The misses are the known ambiguity.** All 5 read the burst as a large order absorbing aggressive flow (2 `low`, 3 `medium` confidence), the same alternative the detector evaluation could not separate without identity.
 - **Confidence is less decisive than before** (13 of 14 hits `medium`, 1 `high`; the artefact-era run had mostly `high`), which is what calibration should look like once the giveaways are gone.
 

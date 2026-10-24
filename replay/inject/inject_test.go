@@ -2,6 +2,8 @@ package inject
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -199,5 +201,60 @@ func TestVolumeSpikeTradesBlendIntoTheTape(t *testing.T) {
 	}
 	if dups != 1 || len(ids) != 600+len(synth) {
 		t.Fatalf("dups %d, distinct ids %d, want 1 and %d", dups, len(ids), 600+len(synth))
+	}
+}
+
+func TestInjectedSizesAreDistinctAndFormattedLikeTheTape(t *testing.T) {
+	// Sizes used to be drawn with replacement and scaled by one factor, so exact sizes repeated
+	// within a burst and echoed earlier real trades; every size was also printed with 8
+	// significant decimals. Each synthetic size must be unique, never copy a real size, and keep
+	// the venue's formatting (Kraken pads to 8 decimals; Coinbase prints what is significant).
+	base := time.Unix(1_800_000_000, 0)
+	for _, tc := range []struct {
+		venue pb.Venue
+		sizes []string
+	}{
+		{pb.Venue_VENUE_KRAKEN, []string{"0.01000000", "0.25000000", "0.00300000", "1.20000000", "0.07000000"}},
+		{pb.Venue_VENUE_COINBASE, []string{"0.01", "0.25", "0.003", "1.2", "0.07"}},
+	} {
+		plan := []Injection{{ID: "v1", Pattern: "volume_spike", Venue: tc.venue, Product: "BTC-USD",
+			At: base.Add(400 * time.Second), Params: map[string]float64{"multiple": 20}}}
+		mem := &sink.Memory{}
+		in := New(mem, &labels{}, plan, 100)
+		real := map[string]bool{}
+		for i := 0; i < 600; i++ {
+			tr := trade(uint64(5_000_000+i), base.Add(time.Duration(i)*time.Second), "100.00")
+			tr.Venue = tc.venue
+			tr.Size = tc.sizes[i%len(tc.sizes)]
+			real[tr.Size] = true
+			in.Trade(tr)
+		}
+		in.Flush(context.Background())
+		trades, _, _ := mem.Snapshot()
+		seen := map[string]bool{}
+		n := 0
+		for _, tr := range trades {
+			if tr.IngestId != "inject" {
+				continue
+			}
+			n++
+			if seen[tr.Size] || real[tr.Size] {
+				t.Fatalf("%v: size %s repeats a synthetic or real size", tc.venue, tr.Size)
+			}
+			seen[tr.Size] = true
+			dec := len(tr.Size) - strings.IndexByte(tr.Size, '.') - 1
+			if tc.venue == pb.Venue_VENUE_KRAKEN && dec != 8 {
+				t.Fatalf("kraken size %s is not padded to 8 decimals", tr.Size)
+			}
+			if tc.venue == pb.Venue_VENUE_COINBASE && dec > 5 {
+				t.Fatalf("coinbase size %s has %d decimals; the tape uses at most 3", tr.Size, dec)
+			}
+			if v, _ := strconv.ParseFloat(tr.Size, 64); v <= 0 {
+				t.Fatalf("size %s is not positive", tr.Size)
+			}
+		}
+		if n < 12 {
+			t.Fatalf("%v: %d synthetic trades", tc.venue, n)
+		}
 	}
 }
