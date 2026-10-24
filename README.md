@@ -2,7 +2,7 @@
 
 Real-time crypto market surveillance: live trade and order-book feeds from Coinbase and Kraken, provable data completeness under failure, manipulation-pattern detection, an Iceberg lakehouse, and an AI investigator measured against labeled ground truth.
 
-> **Status:** Week 2 in progress (v0.1 tag pending its 24 h run): ingestion with gap repair, plus an exactly-once Flink → Iceberg lakehouse, ClickHouse hot aggregates, dbt marts and hourly reconciliation. Every number below links to the script or panel that produced it.
+> **Status:** Weeks 1–3 built and measured (tag [`v0.1`](https://github.com/sunil8446/tidemark/releases/tag/v0.1) after the 24 h run). Ingestion with gap repair, an exactly-once Flink → Iceberg lakehouse, ClickHouse hot aggregates, dbt marts, hourly reconciliation, four detectors evaluated against labelled injections, an MCP server, and a LangGraph investigator evaluated with an LLM judge. Open: a 48 h run, the cloud deployment, the public dashboard. Every number below links to the script or report that produced it.
 
 ## What works today
 
@@ -17,6 +17,10 @@ Real-time crypto market surveillance: live trade and order-book feeds from Coinb
 - **dbt on Trino.** Staging, intermediate and marts with enforced contracts; custom tests for monotonic trade ids and the OHLC invariant (28 / 28 passing).
 - **Reconciliation** (`make reconcile`, hourly in Airflow): finds missing trade-id runs in Iceberg, re-fetches them over REST, and records every run in `iceberg.ops.reconciliation_runs`.
 - **Iceberg maintenance** in Airflow: `optimize`, `expire_snapshots`, `remove_orphan_files`, measured before and after.
+- **Detectors** in Flink: volume spike, spoof-like layering (Kraken book), Coinbase–Kraken dislocation, wash trades (synthetic accounts). Thresholds are chosen on one injection seed within an alert budget of 6 unlabelled alerts per hour, then frozen and reported on another ([ADR-0006](docs/adr/0006-detector-evaluation.md)).
+- **MCP server** (`mcp-server/`): read-only, bounded tools over the lake and ClickHouse (`get_alert`, `query_trades`, `book_snapshot`, `cross_venue_context`, `similar_past_alerts`).
+- **AI investigator** (`agent/`): a LangGraph graph that investigates an alert with the MCP tools, writes a case file whose every number must trace to a tool result (checked automatically), and routes escalations to a review page. Runs on the Claude API or, for evaluations on a Claude subscription, through the Claude Code CLI.
+- **Chaos experiments** (`chaos/run.sh`): WebSocket drop, TaskManager kill, ingest network partition, each followed by an independent completeness check.
 
 ## Measured so far
 
@@ -30,7 +34,12 @@ Real-time crypto market surveillance: live trade and order-book feeds from Coinb
 | Exactly-once across savepoint upgrade + TaskManager kill | 40,492 / 40,492 ids, 0 duplicates | 1 h window | [docs/schema-evolution.md](docs/schema-evolution.md) |
 | Flink checkpoint duration | ~74 ms lakehouse, ~216 ms analytics | live load | Prometheus `flink_jobmanager_job_lastCheckpointDuration` |
 | Compaction | 98 → 2 files on `raw_trades` | 40 min of 30–60 s commits | [bench/compaction.md](bench/compaction.md) |
-| 24 h unattended gap report | *running* | restarted 2026-10-23 01:56 UTC (first attempt stopped for heat) | [bench/gaps.md](bench/gaps.md) |
+| 24 h run completeness | **864,522 / 864,522** trades (100%), 0 missing | 2026-10-23 01:56 → 10-24 01:56 UTC, independent Kafka audit; 97.66% before a manual repair after a 3.5 h Docker outage (see the report for what failed and the fixes) | [bench/gaps.md](bench/gaps.md) |
+| Outage self-repair | 123,253 trades refilled over REST, 0 unrecoverable | 3 h 26 m broker outage, ingestor kept running | [bench/gaps.md](bench/gaps.md) |
+| Chaos experiments | 3 / 3 at 100% completeness, 0 duplicates | WebSocket drop (27 s), TaskManager kill (69 s to a new Iceberg commit), 60 s ingest partition (9 s after reconnect) | [docs/chaos-report.md](docs/chaos-report.md) |
+| Detector recall at ≤ 6 unlabelled alerts/h | dislocation 0.95, wash 0.85–0.90, volume spike 0.30, spoof 0.10 | 20 injections per pattern, held-out seed, thresholds frozen from training | [docs/eval-report.md](docs/eval-report.md) |
+| Investigator recall on injected alerts | spoof 11 / 18 (0.61), volume spike 11 / 18 (0.61) | Claude Opus 5.5, no injector artefacts left; real alerts await human labels | [docs/eval-report.md](docs/eval-report.md) |
+| Investigator groundedness | 0.99+ of narrative numbers traceable; claim support 1.00 | 79 case files across three runs (30 + 25 + 24) | [docs/eval-report.md](docs/eval-report.md) |
 
 ## Architecture (target)
 
@@ -108,4 +117,8 @@ The repo sits in a synced OneDrive folder, so **no runtime data is written insid
 ## Known limitations
 
 - Public feeds carry no trader identity, so wash-trade detection is evaluated only on injected trades with synthetic account IDs.
+- Investigator "accuracy" so far is recall on injected manipulation: every labelled case is an injection. False escalations need the real alerts hand-labelled.
+- Injected patterns are idealised; recall on real manipulation would be lower.
+- Spoof-like layering is common in Kraken's public book (about 127 add-and-pull events per hour at 0.8× depth), so the spoof detector only works as a triage stage in front of the investigator.
+- The local stack runs one Redpanda broker (RF=1): a broker failure is an outage, not a failover. The 24 h run hit exactly that.
 - The local object store is a frozen MinIO build ([ADR-0001](docs/adr/0001-local-object-store.md)); cloud deployments use S3.
