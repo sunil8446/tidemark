@@ -149,12 +149,57 @@ class AnalyticsTest {
       h.processElement(new StreamRecord<>(t("coinbase", n, "100.0", "1", last, "buy"), last));
       long ms = (System.nanoTime() - t0) / 1_000_000;
       List<Spread> out = h.extractOutputValues();
-      assertEquals(n - 5, out.size()); // ticks 2 s .. (n - 4) s, the last tick at or before last - 5 s
+      // Final up to the slower venue (kraken, last at n s + 0.3 s) minus 5 s: ticks 2 s .. (n - 5) s.
+      assertEquals(n - 6, out.size());
       for (Spread s : out) { // as-of: the coinbase price alternates every second
         long i = (s.tsMs - 1_200) / 1_000;
         assertEquals(0, new BigDecimal(i % 2 == 0 ? "100.0" : "101.0").compareTo(s.coinbasePrice), "tick " + s.tsMs);
       }
       assertTrue(ms < 5_000, "catch-up took " + ms + " ms");
+    }
+  }
+
+  @Test
+  void venuesFarApartInArrivalGiveTheSameSamplesAsInterleaved() throws Exception {
+    // Coinbase and Kraken come through different partitions; in catch-up one can be minutes ahead.
+    // A tick may only be final when both venues are past it, or the lagging venue's prices are
+    // wrongly treated as stale (this lost 6 of 19 injected dislocations).
+    java.util.function.Function<Boolean, List<Spread>> run = skewed -> {
+      try (var h = new KeyedOneInputStreamOperatorTestHarness<String, TradeEvent, Spread>(
+          new KeyedProcessOperator<>(new Spread.Fn(30_000, 5_000)), e -> e.productId, Types.STRING)) {
+        h.open();
+        List<TradeEvent> cb = new java.util.ArrayList<>();
+        List<TradeEvent> kr = new java.util.ArrayList<>();
+        for (int i = 0; i < 600; i++) {
+          long ts = 1_000 + i * 1_000L + 200;
+          cb.add(t("coinbase", i, i % 3 == 0 ? "101.0" : "100.0", "1", ts, "buy"));
+          kr.add(t("kraken", i, i % 5 == 0 ? "98.0" : "99.0", "1", ts + 300, "buy"));
+        }
+        if (skewed) { // all of coinbase, then all of kraken
+          for (TradeEvent e : cb) {
+            h.processElement(new StreamRecord<>(e, e.eventTsUs / 1000));
+          }
+          for (TradeEvent e : kr) {
+            h.processElement(new StreamRecord<>(e, e.eventTsUs / 1000));
+          }
+        } else {
+          for (int i = 0; i < 600; i++) {
+            h.processElement(new StreamRecord<>(cb.get(i), cb.get(i).eventTsUs / 1000));
+            h.processElement(new StreamRecord<>(kr.get(i), kr.get(i).eventTsUs / 1000));
+          }
+        }
+        return h.extractOutputValues();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
+    List<Spread> a = run.apply(false);
+    List<Spread> b = run.apply(true);
+    assertTrue(a.size() > 500, "samples " + a.size());
+    assertEquals(a.size(), b.size());
+    for (int i = 0; i < a.size(); i++) {
+      assertEquals(a.get(i).tsMs, b.get(i).tsMs);
+      assertEquals(0, a.get(i).spread.compareTo(b.get(i).spread), "tick " + a.get(i).tsMs);
     }
   }
 }
