@@ -1,0 +1,10 @@
+{
+  "experiment": "websocket-drop",
+  "started_at": "2026-10-24T15:51:47Z",
+  "recovery_seconds": 27,
+  "reconcile_window": "777s",
+  "expected_ids": 11490,
+  "present_ids": 11490,
+  "completeness_pct": 100,
+  "duplicate_rows": 0
+}

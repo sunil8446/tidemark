@@ -1,0 +1,10 @@
+{
+  "experiment": "ingest-partition",
+  "started_at": "2026-10-24T15:59:47Z",
+  "recovery_seconds": 69,
+  "reconcile_window": "820s",
+  "expected_ids": 11625,
+  "present_ids": 11625,
+  "completeness_pct": 100,
+  "duplicate_rows": 0
+}

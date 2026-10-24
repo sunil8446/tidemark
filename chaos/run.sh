@@ -79,7 +79,7 @@ esac
 # Let the lakehouse commit what happened (60 s checkpoints), then check the window.
 sleep 150
 window=$(( $(now) - start + 600 ))s
-report=$(go run ./ingest/cmd/reconcile --window "$window" --settle 2m --repair=false --record=false 2>/dev/null)
+report=$(go run ./ingest/cmd/reconcile --window "$window" --settle 2m --repair=false --record=false --catch-up 0 2>/dev/null)
 python3 - "$exp" "$started_at" "$(( recovered - start ))" "$window" "$out" <<PY
 import json, sys, time
 exp, started, rto, window, out = sys.argv[1:]

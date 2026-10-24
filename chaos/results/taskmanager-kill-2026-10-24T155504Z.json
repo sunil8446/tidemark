@@ -1,0 +1,10 @@
+{
+  "experiment": "taskmanager-kill",
+  "started_at": "2026-10-24T15:55:04Z",
+  "recovery_seconds": 69,
+  "reconcile_window": "819s",
+  "expected_ids": 11472,
+  "present_ids": 11472,
+  "completeness_pct": 100,
+  "duplicate_rows": 0
+}
