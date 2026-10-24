@@ -15,6 +15,8 @@
 | dislocation | 20 | 5.8 | 28 | 0 | 0.0 | 1.000 | 19 / 20 | 0.950 | 0.974 |
 | wash_trade | 20 | 0.977 | 18 | 0 | 0.0 | 1.000 | 18 / 20 | 0.900 | 0.947 |
 
+**Re-measured 2026-10-24** with the realistic injector (synthetic trades renumbered into the venue's id sequence, real-like sizes, random timing and sides, the tape's `source`): identical held-out results for all four detectors (volume spike 6/20, spoof 2/20, dislocation 19/20, wash 18/20). The detectors never used ids, sizes or timing, so the artefacts only mattered to the investigator agent. The re-run also caught a regression from a spread-operator change (dislocation briefly fell to 13/20; fixed in `f2696f5`, see the agent section below).
+
 ### Training (seed 42, thresholds chosen here)
 
 | Detector | Injected | Threshold | TP alerts | Unlabelled alerts | Unlabelled / h | Precision (vs labels) | Labels detected | Recall | F1 |
