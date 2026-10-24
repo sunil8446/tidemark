@@ -123,6 +123,22 @@ See ADR-0006. In short: phantom Kraken book levels (no deletes outside the subsc
 - **Grounding holds.** Every cited claim was found in the tool call it cites, and only 4 numbers across 30 narratives were not traceable.
 - **The judge grades reasoning, not correctness.** It agreed with triage correctness on 16 / 24 cases: it passes well-argued wrong calls and fails right calls that state one unsupported detail. Agreement with human grades still needs the hand-labelled set.
 
+### Volume spike re-run with the realistic injector (2026-10-24)
+
+The first run's volume-spike result (6 / 6) leaned on injector artefacts. After fixing the injector (synthetic trades renumbered into the venue's id sequence, sizes drawn from the recent tape, random timing and taker side, the tape's `source`), the full injected volume-spike slice of the held-out run was re-investigated: 19 injected alerts plus 6 real ones, same model, prompts and judge. Set: `evals/volume_spike_v2.jsonl`.
+
+| Slice | Cases | Escalated | Judge pass |
+|---|---:|---:|---:|
+| Injected volume spike | 19 | **14 (recall 0.74)** | 17 |
+| Real volume spike (unlabelled) | 6 | 0 (all `likely_benign`, medium) | 6 |
+
+Groundedness 0.997 (23 / 25 fully grounded), claim support 1.00, judge pass 0.92, 58 s p50 per case.
+
+- **This is the honest volume-spike number: 0.74, down from 1.00.** Most hits now rest on the injected pattern itself (two-sided prints at one fixed price while the rest of the market moves) rather than on artefacts.
+- **One artefact remains.** Synthetic sizes are drawn *with replacement* from the last 256 real sizes and all scaled by one factor, so exact sizes repeat within a burst and echo earlier real trades; 3 of 19 case files cite repeated exact sizes. Next fix: jitter each size independently.
+- **The misses are the known ambiguity.** All 5 read the burst as a large order absorbing aggressive flow (2 `low`, 3 `medium` confidence), the same alternative the detector evaluation could not separate without identity.
+- **Confidence is less decisive than before** (13 of 14 hits `medium`, 1 `high`; the artefact-era run had mostly `high`), which is what calibration should look like once the giveaways are gone.
+
 ### Bugs this evaluation found
 
 | Finding | Fix |
@@ -132,10 +148,11 @@ See ADR-0006. In short: phantom Kraken book levels (no deletes outside the subsc
 | The judge was not shown the detector history the investigator gets in its prompt, and saw tool results cut to 6,000 characters (the agent sees 24,000), so it marked supported claims as fabricated (pass rate 0.37) | The judge sees exactly what the investigator saw; all 30 cases re-graded from the recorded tool results (`--regrade`), pass rate 0.80 |
 | Grounding split clock times (`08:47:34.314917`) into loose numbers and could not match ISO timestamps | Times are checked against times in tool inputs and outputs |
 | On the CLI backend the model could see `get_alert` but not call it, and reported the refusal as a failure in its case file | Non-investigation tools are hidden with `--disallowedTools` |
+| Spread sampling finalised a tick when *either* venue was past it; the venues arrive through different partitions, minutes apart in replay, so the lagging venue looked stale and dislocation recall fell to 13 / 20 (found by re-running the detector evaluation) | A tick is final when both venues are past it; per-second map state keeps lookups constant time. Back to 19 / 20 |
 | A Docker memory squeeze (7.65 GB VM) killed Trino mid-run | The runner treats tool-backend errors as unscored and retries the case; Airflow is paused during evals |
 
 ### Next
 
-1. ~~Make the injector realistic~~ Done in code (2026-10-23): every trade on the injected stream is renumbered into one continuous per-instrument sequence, synthetic sizes are drawn from the instrument's recent real sizes, times are random within the window, taker sides are random, and synthetic trades copy the tape's `source` (they were tagged `replay`, which `query_trades` exposes). The flat price stays: it is the pattern being injected. **Not yet re-measured:** the volume-spike slice needs a fresh injected run and re-investigation.
+1. ~~Make the injector realistic~~ Done in code (2026-10-23): every trade on the injected stream is renumbered into one continuous per-instrument sequence, synthetic sizes are drawn from the instrument's recent real sizes, times are random within the window, taker sides are random, and synthetic trades copy the tape's `source` (they were tagged `replay`, which `query_trades` exposes). The flat price stays: it is the pattern being injected. Re-measured 2026-10-24: see *Volume spike re-run* above.
 2. Hand-label the real alerts in the review page; report judge-human agreement.
 3. Run the full 118-alert set; try routing low-confidence benign verdicts to review and report the queue size it costs.

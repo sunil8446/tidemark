@@ -1,0 +1,4435 @@
+{
+ "summary": {
+  "cases": 25,
+  "completed": 25,
+  "errors": 0,
+  "accuracy": 0.7368,
+  "labelled": 19,
+  "accuracy_by_source": {
+   "injected": 0.7368
+  },
+  "groundedness_mean": 0.9969,
+  "fully_grounded_share": 0.92,
+  "claim_support_mean": 1.0,
+  "judge_pass_rate": 0.92,
+  "cost_per_case_usd": 0.3113,
+  "cost_total_usd": 7.78,
+  "latency_p50_s": 58.3,
+  "latency_p95_s": 66.8,
+  "backend": "cli",
+  "model": "claude-opus-5-5"
+ },
+ "date": "2026-10-24",
+ "note": "volume-spike re-run with the realistic injector; CLI backend",
+ "results": [
+  {
+   "alert_id": "volume_spike:coinbase:ETH-USD:1792657579000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "Coinbase ETH-USD volume in the window was inflated by large two-sided prints at a single price (2412.46), with exact sizes repeating and sometimes switching side. That is consistent with wash-style matched trading, not with absorption or a news burst.",
+    "narrative": "Coinbase ETH-USD traded 1005474.95 notional (416.78 ETH across 61 trades) between 08:26:15 and 08:26:40, while the price range was only 8.54 bps. Almost all of the size printed at 2412.46, in both directions: a 193.51 ETH buy, plus large sells such as 30.98 ETH and large buys such as 31.59 ETH. The same odd sizes repeat to eight decimals. 21.51458337 ETH printed as a sell and later as a buy, 14.66896582 ETH printed twice, and 31.58966009 ETH printed twice within a fraction of a second. Kraken traded only 1.26 ETH (3029.72 notional) over the same interval. The cross-venue spread stayed in its normal range (max abs 2.57 bps over the 7-minute context), so there was no market-wide move or venue lag. A single resting order can't explain big trades hitting the same price as both buys and sells with matching sizes. A similar burst followed at 08:29:30: 516.65 ETH traded on Coinbase within a 1.95 bps range, with large two-sided prints at 2412.1 such as 170.73 ETH sold and 101.95 ETH bought. Public feeds carry no identity, so same-party trading can't be confirmed from this data. An analyst should check the evaluation stream's account labels for the repeated sizes.",
+    "claims": [
+     {
+      "statement": "Coinbase traded 1005474.95 notional in 08:26:15-08:26:40",
+      "value": "1005474.947822",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "416.78 ETH volume",
+      "value": "416.78209174",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "61 trades",
+      "value": "61",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "price range 8.54 bps",
+      "value": "8.539568047091986",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "most size printed at 2412.46",
+      "value": "2412.46",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "193.51 ETH buy at 2412.46",
+      "value": "193.50937582",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "30.98 ETH sell at 2412.46",
+      "value": "30.97912224",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "31.59 ETH buys printed twice",
+      "value": "31.58966009",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "21.51458337 ETH printed as sell and later buy",
+      "value": "21.51458337",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "14.66896582 ETH printed twice",
+      "value": "14.66896582",
+      "tool_call_id": "toolu_012o6PBw4yAMLoFVCAzNXdfv"
+     },
+     {
+      "statement": "Kraken traded 1.26 ETH in the same interval",
+      "value": "1.2558352",
+      "tool_call_id": "toolu_014gATYJ87RKRKgdkCnjAFgx"
+     },
+     {
+      "statement": "Kraken notional 3029.72",
+      "value": "3029.718978",
+      "tool_call_id": "toolu_014gATYJ87RKRKgdkCnjAFgx"
+     },
+     {
+      "statement": "cross-venue spread max abs 2.57 bps",
+      "value": "2.5714627568123354",
+      "tool_call_id": "toolu_018yFgyj61wquGeDobZqPw5c"
+     },
+     {
+      "statement": "516.65 ETH traded on Coinbase at 08:29:30",
+      "value": "516.64870874",
+      "tool_call_id": "toolu_016U874xrzVxNQt9EBuPfcde"
+     },
+     {
+      "statement": "price range 1.95 bps at 08:29:30",
+      "value": "1.9486994504252932",
+      "tool_call_id": "toolu_016U874xrzVxNQt9EBuPfcde"
+     },
+     {
+      "statement": "two-sided prints at 2412.1",
+      "value": "2412.1",
+      "tool_call_id": "toolu_016U874xrzVxNQt9EBuPfcde"
+     },
+     {
+      "statement": "170.73 ETH sold at 2412.1",
+      "value": "170.72510732",
+      "tool_call_id": "toolu_016U874xrzVxNQt9EBuPfcde"
+     },
+     {
+      "statement": "101.95 ETH bought at 2412.1",
+      "value": "101.95458482",
+      "tool_call_id": "toolu_016U874xrzVxNQt9EBuPfcde"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large passive order absorbing aggressive flow: doesn't fit. Big trades hit 2412.46 as both buys and sells, with identical sizes, within seconds. One resting order would fill against one side only. No Coinbase book data was available to check this further.",
+     "News or market-wide burst: doesn't fit. Kraken volume stayed tiny over the same interval and the cross-venue spread stayed in its normal range, so the activity was confined to Coinbase.",
+     "One venue lagging in a fast move: doesn't fit. The price barely moved and the spread never broke out of its recent range."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 23,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 18,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "The case file accurately cites repeated exact sizes printing on both sides at 2412.46, and it compares against Kraken, the cross-venue spread and the later burst, with medium confidence that matches the lack of identity data. A minor weakness is that the trade query covered 25 seconds instead of the alert's 10-second window, which the narrative states but doesn't flag."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 4949,
+    "cache_read_input_tokens": 23684,
+    "cache_creation_input_tokens": 46475,
+    "cost_usd": 0.336124
+   },
+   "latency_s": 58.79,
+   "tool_calls": [
+    {
+     "id": "toolu_012o6PBw4yAMLoFVCAzNXdfv",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:26:15Z",
+      "end": "2026-10-22T08:26:40Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_018yFgyj61wquGeDobZqPw5c",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:23:00Z",
+      "end": "2026-10-22T08:30:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_014gATYJ87RKRKgdkCnjAFgx",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:26:15Z",
+      "end": "2026-10-22T08:26:40Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    },
+    {
+     "id": "toolu_016U874xrzVxNQt9EBuPfcde",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:29:30Z",
+      "end": "2026-10-22T08:29:40Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:ETH-USD:1792657761000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "Coinbase ETH-USD volume was inflated by large prints that alternated taker side at a single price. Exact sizes repeated in an earlier burst. This is consistent with matched or wash-style trading rather than genuine price-discovering flow.",
+    "narrative": "From 08:29:15 to 08:29:45, Coinbase ETH-USD printed 1269125.40 notional across 54 trades, with a price range of only 1.95 bps. Most of the volume came from large prints at exactly 2412.1 that switched taker side within seconds: a sell of 170.72510732, a buy of 101.95458482 and a sell of 134.95706251. Takers on both sides at one price, with no spread crossed, fit matched flow better than a single passive order absorbing one-directional pressure. The earlier flagged burst near 08:26:37 shows the same pattern at 2412.46, with exact sizes repeated. 14.66896582 was sold twice. 21.51458337 was sold and later bought. 31.58966009 was bought twice. Kraken saw no matching activity: in the 08:29:30 bucket it traded 5.79062303 ETH against Coinbase's 523.00405277, and 13890.48 notional in the 30 s window. The cross-venue spread stayed small (max abs 5.6 bps), so there was no fast move or news-driven repricing. Public data carries no account identity, so this can't confirm the same party was on both sides. Check the inj account labels for these trade IDs.",
+    "claims": [
+     {
+      "statement": "Coinbase printed 1269125.40 notional in the 08:29:15-45 window",
+      "value": "1269125.40227",
+      "tool_call_id": "toolu_0153KENxikc4z1oyaeew2ZvF"
+     },
+     {
+      "statement": "54 trades in the window",
+      "value": "54",
+      "tool_call_id": "toolu_0153KENxikc4z1oyaeew2ZvF"
+     },
+     {
+      "statement": "Price range of 1.95 bps",
+      "value": "1.9486994504252932",
+      "tool_call_id": "toolu_0153KENxikc4z1oyaeew2ZvF"
+     },
+     {
+      "statement": "Large prints at 2412.1",
+      "value": "2412.1",
+      "tool_call_id": "toolu_0153KENxikc4z1oyaeew2ZvF"
+     },
+     {
+      "statement": "Sell print of 170.72510732",
+      "value": "170.72510732",
+      "tool_call_id": "toolu_0153KENxikc4z1oyaeew2ZvF"
+     },
+     {
+      "statement": "Buy print of 101.95458482",
+      "value": "101.95458482",
+      "tool_call_id": "toolu_0153KENxikc4z1oyaeew2ZvF"
+     },
+     {
+      "statement": "Sell print of 134.95706251",
+      "value": "134.95706251",
+      "tool_call_id": "toolu_0153KENxikc4z1oyaeew2ZvF"
+     },
+     {
+      "statement": "Earlier burst concentrated at 2412.46",
+      "value": "2412.46",
+      "tool_call_id": "toolu_01JQco4YyqFkPfTDU7W1KBHX"
+     },
+     {
+      "statement": "Size 14.66896582 sold twice",
+      "value": "14.66896582",
+      "tool_call_id": "toolu_01JQco4YyqFkPfTDU7W1KBHX"
+     },
+     {
+      "statement": "Size 21.51458337 sold and later bought",
+      "value": "21.51458337",
+      "tool_call_id": "toolu_01JQco4YyqFkPfTDU7W1KBHX"
+     },
+     {
+      "statement": "Size 31.58966009 bought twice",
+      "value": "31.58966009",
+      "tool_call_id": "toolu_01JQco4YyqFkPfTDU7W1KBHX"
+     },
+     {
+      "statement": "Kraken volume of 5.79062303 ETH in the 08:29:30 bucket",
+      "value": "5.79062303",
+      "tool_call_id": "toolu_01Bt6LPu1Kex7LjbuQBh4ypV"
+     },
+     {
+      "statement": "Coinbase volume of 523.00405277 ETH in the 08:29:30 bucket",
+      "value": "523.00405277",
+      "tool_call_id": "toolu_01Bt6LPu1Kex7LjbuQBh4ypV"
+     },
+     {
+      "statement": "Kraken notional of 13890.48 in the 30 s window",
+      "value": "13890.477942",
+      "tool_call_id": "toolu_018uFDEjAMUAXcjXfgHPUrvA"
+     },
+     {
+      "statement": "Cross-venue spread max abs of 5.6 bps",
+      "value": "5.60286388675508",
+      "tool_call_id": "toolu_01Bt6LPu1Kex7LjbuQBh4ypV"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News-driven or fast-market burst: rejected. Price was flat on both venues, the cross-venue spread stayed small and Kraken volume didn't rise.",
+     "One large passive order absorbing aggressive flow: partly consistent with the pinned price. It doesn't explain takers on both sides at the same price within seconds, or the exact repeated sizes in the 08:26 burst.",
+     "Block or iceberg execution by one participant: that would normally lean one way. Coinbase buy volume share was 0.24 in this burst versus 0.70 in the 08:26 burst."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 20,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 15,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Every cited figure, including the alternating large prints at 2412.1, the repeated sizes in the 08:26 burst and the Kraken comparison, matches the tool output, and the file weighs several benign explanations against the data. Its weakest point is the claim that no spread was crossed, which is interpretation rather than a measured fact, but medium confidence and asking for account labels suit evidence that has no identities."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 4709,
+    "cache_read_input_tokens": 19707,
+    "cache_creation_input_tokens": 42868,
+    "cost_usd": 0.312493
+   },
+   "latency_s": 56.83,
+   "tool_calls": [
+    {
+     "id": "toolu_0153KENxikc4z1oyaeew2ZvF",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:29:15Z",
+      "end": "2026-10-22T08:29:45Z",
+      "stream": "inj",
+      "limit": 300
+     }
+    },
+    {
+     "id": "toolu_01Bt6LPu1Kex7LjbuQBh4ypV",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:24:00Z",
+      "end": "2026-10-22T08:32:00Z",
+      "stream": "inj",
+      "bucket_seconds": 30
+     }
+    },
+    {
+     "id": "toolu_018uFDEjAMUAXcjXfgHPUrvA",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:29:15Z",
+      "end": "2026-10-22T08:29:45Z",
+      "stream": "inj",
+      "limit": 50
+     }
+    },
+    {
+     "id": "toolu_01JQco4YyqFkPfTDU7W1KBHX",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:26:25Z",
+      "end": "2026-10-22T08:26:42Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:BTC-USD:1792658305000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "The Coinbase BTC-USD spike came from a few large two-sided prints at one fixed price (81818.25) that kept printing after the rest of the market moved about 25 USD higher, which is consistent with wash-style volume inflation rather than real price discovery.",
+    "narrative": "The alert reproduces. Coinbase BTC-USD printed 112 trades for 1441856.57 notional between 08:38:20 and 08:38:50, with a price range of only 3.30 bps. Nearly all of that volume came from four prints at 81818.25: a 12.28638544 BTC taker buy, a 3.89068872 BTC taker buy, a 0.9010016 BTC taker sell and a 0.32518786 BTC taker sell. Prints at 81818.25 kept appearing from 08:38:34 to 08:38:41, while other Coinbase trades in that stretch printed between 81835.74 and 81844.13. That means aggressive buys printed below the prevailing market price. The same small size, 0.00001638 BTC, also traded at 81818.25 once as a buy and once as a sell. The 08:38:30 bucket shows 17.57200868 BTC on Coinbase, while Kraken traded only 0.01236526 BTC (1011.81 notional) over the whole 30 s window. The cross-venue VWAP gap in that bucket was a normal -1.65 bps. News-driven flow and a single passive order absorbing flow both fit poorly, so this should be escalated. The analyst should check the synthetic account IDs on the 81818.25 prints. Public data cannot identify who placed these orders.",
+    "claims": [
+     {
+      "statement": "Coinbase printed 112 trades in 08:38:20-08:38:50",
+      "value": "112",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "Coinbase notional in the window was 1441856.57",
+      "value": "1441856.574253",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "Coinbase price range was 3.30 bps",
+      "value": "3.2994979997098888",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "Large prints occurred at the fixed price 81818.25",
+      "value": "81818.25",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "12.28638544 BTC taker buy at 81818.25",
+      "value": "12.28638544",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "3.89068872 BTC taker buy at 81818.25",
+      "value": "3.89068872",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "0.9010016 BTC taker sell at 81818.25",
+      "value": "0.9010016",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "0.32518786 BTC taker sell at 81818.25",
+      "value": "0.32518786",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "Other Coinbase trades printed as low as 81835.74",
+      "value": "81835.74",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "Other Coinbase trades printed as high as 81844.13",
+      "value": "81844.13",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "0.00001638 BTC traded as both a buy and a sell at 81818.25",
+      "value": "0.00001638",
+      "tool_call_id": "toolu_01XaN8HjKEvVB5txawfftKPT"
+     },
+     {
+      "statement": "Coinbase volume in the 08:38:30 bucket was 17.57200868 BTC",
+      "value": "17.57200868",
+      "tool_call_id": "toolu_01YVaLHWrBYPgr4VZoAPMRBz"
+     },
+     {
+      "statement": "Cross-venue spread in the 08:38:30 bucket was -1.65 bps",
+      "value": "-1.6537438828544995",
+      "tool_call_id": "toolu_01YVaLHWrBYPgr4VZoAPMRBz"
+     },
+     {
+      "statement": "Kraken traded 0.01236526 BTC in the same window",
+      "value": "0.01236526",
+      "tool_call_id": "toolu_01FoQ7zN7437CrgXFi4QBeVh"
+     },
+     {
+      "statement": "Kraken notional in the same window was 1011.81",
+      "value": "1011.809242",
+      "tool_call_id": "toolu_01FoQ7zN7437CrgXFi4QBeVh"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News-driven burst: rejected. News would drive volume on both venues and move the price, but Kraken traded only 0.01236526 BTC in the window, the Coinbase range stayed near 3.3 bps and the cross-venue spread was normal (-1.65 bps).",
+     "Large passive order absorbing aggressive flow: fits poorly. Both large buys and large sells printed at the same 81818.25 level, and aggressive buys kept printing there after other trades moved to 81835-81844. A genuine resting bid would not fill taker buys below the ask.",
+     "Ordinary market-maker re-quoting or tiny-lot noise: does not explain the 17.57 BTC bucket, since most of the volume came from four large prints rather than many small ones."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 24,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 15,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Every figure checks out against the tool results, including the four prints at 81818.25 that make up about 17.4 of 17.6 BTC, the out-of-market prices and Kraken's near-zero volume, and it rejects three ordinary explanations using data. It makes only light use of the detector's history, though the cross-venue comparison and the buckets before and after the spike are enough for context."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 6,
+    "output_tokens": 5134,
+    "cache_read_input_tokens": 10214,
+    "cache_creation_input_tokens": 50379,
+    "cost_usd": 0.356642
+   },
+   "latency_s": 56.41,
+   "tool_calls": [
+    {
+     "id": "toolu_01XaN8HjKEvVB5txawfftKPT",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:38:20Z",
+      "end": "2026-10-22T08:38:50Z",
+      "stream": "inj",
+      "limit": 300
+     }
+    },
+    {
+     "id": "toolu_01YVaLHWrBYPgr4VZoAPMRBz",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:35:00Z",
+      "end": "2026-10-22T08:42:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01FoQ7zN7437CrgXFi4QBeVh",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:38:20Z",
+      "end": "2026-10-22T08:38:50Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:BTC-USD:1792658753000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "The Coinbase BTC-USD spike was mostly made up of identical-size trades going back and forth at one price, 81878.63, with little price impact; this fits wash-style volume inflation, though public data cannot show who traded.",
+    "narrative": "From 08:45:50 to 08:46:15, Coinbase BTC-USD printed 102 trades for 9.36491467 BTC (766785.28 notional), with a price range of only 1.408 bps. Most of the volume came from a few large prints at 81878.63 whose sizes repeat exactly with opposite taker sides: 1.13441232 (taker sell, then taker buy), 2.24154504 (taker sell, then taker buy), and 0.99553366 (taker buy twice). After about 08:46:04 the other trades moved down to roughly 81867.11, but prints at 81878.63 kept appearing, including the 2.24154504 buy at 08:46:10, so they were off the prices other trades were hitting. Kraken printed only 0.1197611 BTC (9805.16 notional) over the same window. In 10-second buckets, Coinbase volume jumped to 7.07475796 BTC and then 2.29166303 BTC, while Kraken showed 0.0806855 and 0.02382325, and the spread between the venues stayed near 0.96 bps. That rules out a market-wide news burst. One passive order absorbing one-sided flow also fits poorly, because the taker side flips with exactly matching sizes. Public feeds carry no account identity, so an analyst should check the account labels on the evaluation stream before drawing conclusions.",
+    "claims": [
+     {
+      "statement": "Coinbase printed 102 trades from 08:45:50 to 08:46:15",
+      "value": "102",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Coinbase volume was 9.36491467 BTC",
+      "value": "9.36491467",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Coinbase notional was 766785.28",
+      "value": "766785.280325",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Coinbase price range was 1.408 bps",
+      "value": "1.4082808256092143",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Large prints happened at 81878.63",
+      "value": "81878.63",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Size 1.13441232 printed as a taker sell, then as a taker buy",
+      "value": "1.13441232",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Size 2.24154504 printed as a taker sell, then as a taker buy",
+      "value": "2.24154504",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Size 0.99553366 printed as a taker buy twice",
+      "value": "0.99553366",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Other trades moved down to about 81867.11",
+      "value": "81867.11",
+      "tool_call_id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo"
+     },
+     {
+      "statement": "Kraken volume over the same window was 0.1197611 BTC",
+      "value": "0.1197611",
+      "tool_call_id": "toolu_012nPjEYWwdNA4DQbphSxkvo"
+     },
+     {
+      "statement": "Kraken notional over the same window was 9805.16",
+      "value": "9805.159869",
+      "tool_call_id": "toolu_012nPjEYWwdNA4DQbphSxkvo"
+     },
+     {
+      "statement": "Coinbase 10-second bucket volume at 08:46:00 was 7.07475796 BTC",
+      "value": "7.07475796",
+      "tool_call_id": "toolu_01FWjHm69gazjYoVpf7dLUP8"
+     },
+     {
+      "statement": "Coinbase 10-second bucket volume at 08:46:10 was 2.29166303 BTC",
+      "value": "2.29166303",
+      "tool_call_id": "toolu_01FWjHm69gazjYoVpf7dLUP8"
+     },
+     {
+      "statement": "Kraken 10-second bucket volume at 08:46:00 was 0.0806855 BTC",
+      "value": "0.0806855",
+      "tool_call_id": "toolu_01FWjHm69gazjYoVpf7dLUP8"
+     },
+     {
+      "statement": "Kraken 10-second bucket volume at 08:46:10 was 0.02382325 BTC",
+      "value": "0.02382325",
+      "tool_call_id": "toolu_01FWjHm69gazjYoVpf7dLUP8"
+     },
+     {
+      "statement": "The spread between venues stayed near 0.96 bps",
+      "value": "0.9640478263094846",
+      "tool_call_id": "toolu_01FWjHm69gazjYoVpf7dLUP8"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News-driven or market-wide burst: doesn't fit. Kraken volume stayed small in the same buckets (0.0806855 and 0.02382325 BTC), the spread between venues stayed near 0.96 bps, and the Coinbase price barely moved.",
+     "One large passive order absorbing aggressive flow: fits poorly. The taker side flips between buy and sell with exactly matching sizes (1.13441232, 2.24154504) at one price, instead of one-sided flow into a resting order.",
+     "Generally busy period: the detector fired several times for this product in the preceding minutes, so activity may have been elevated, but that doesn't explain the exact size matching or the prints at 81878.63 while other trades were near 81867.11."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 23,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 16,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Main strength: the claims match the trade data, including the exact repeated sizes with flipped taker sides at 81878.63 and the small Kraken volume, and the escalation is set at medium confidence without saying who traded. Main weakness: it doesn't compare the pattern with the earlier Coinbase spike at 08:38 in the detector history, which might have shown whether this is recurring behaviour."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 6,
+    "output_tokens": 4831,
+    "cache_read_input_tokens": 10216,
+    "cache_creation_input_tokens": 46964,
+    "cost_usd": 0.333507
+   },
+   "latency_s": 54.97,
+   "tool_calls": [
+    {
+     "id": "toolu_01RjMZSzYAwUnx7nUuwDqmpo",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:45:50Z",
+      "end": "2026-10-22T08:46:15Z",
+      "stream": "inj",
+      "limit": 300
+     }
+    },
+    {
+     "id": "toolu_01FWjHm69gazjYoVpf7dLUP8",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:43:00Z",
+      "end": "2026-10-22T08:49:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_012nPjEYWwdNA4DQbphSxkvo",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:45:50Z",
+      "end": "2026-10-22T08:46:15Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:SOL-USD:1792658848000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "The Kraken SOL-USD burst looks like volume inflation: almost all of it printed at one price, 103.66, including one very large print where the book showed no resting order, and identical sizes traded in both directions.",
+    "narrative": "Between 08:47:20 and 08:47:50, Kraken SOL-USD printed 35 trades totalling 1256.55 SOL (130,254 notional), and the price range was only 4.8 bps. Nearly every trade printed at 103.66. In the 08:47:30 bucket, Kraken traded 1150.52 SOL while Coinbase traded 1.63 SOL. At 08:47:39.5 the Kraken book's best bid was 103.65 and best ask 103.67, so nothing was resting at 103.66. About 0.1 s later, a 756.55 SOL buy printed at 103.66, even though 661.10 SOL was offered at 103.67. At 08:47:33 only 25.41 SOL was bid at 103.66, yet sells of 60.42 and 68.93 SOL filled there over the next few seconds. The exact size 60.09458578 traded once as a sell and once as a buy at 103.66, and the same happened with 0.86718387. That size-matching is the back-and-forth pattern the detector looks for. Coinbase did not react: the cross-venue spread's largest gap was 3.04 bps and its mean was -0.36 bps. Public data cannot identify who traded. The analyst should check the evaluation stream's synthetic account labels for the 756.55 SOL print and the matching-size pairs, and look at the similar Kraken burst at 08:49:20 (1238.59 SOL).",
+    "claims": [
+     {
+      "statement": "35 trades in the window",
+      "value": "35",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Volume of 1256.55 SOL",
+      "value": "1256.54940911",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Notional of 130,254",
+      "value": "130253.907497",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Price range of 4.8 bps",
+      "value": "4.823693984853601",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Nearly every trade printed at 103.66",
+      "value": "103.66",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Kraken traded 1150.52 SOL in the 08:47:30 bucket",
+      "value": "1150.51869079",
+      "tool_call_id": "toolu_01WyFdopyssGrJf28b38H8Pe"
+     },
+     {
+      "statement": "Coinbase traded 1.63 SOL in the same bucket",
+      "value": "1.63270401",
+      "tool_call_id": "toolu_01WyFdopyssGrJf28b38H8Pe"
+     },
+     {
+      "statement": "Best bid was 103.65 at 08:47:39.5",
+      "value": "103.65",
+      "tool_call_id": "toolu_01CEoRRoNobXeDXN6436dnnN"
+     },
+     {
+      "statement": "Best ask was 103.67 at 08:47:39.5",
+      "value": "103.67",
+      "tool_call_id": "toolu_01CEoRRoNobXeDXN6436dnnN"
+     },
+     {
+      "statement": "661.10 SOL was offered at 103.67",
+      "value": "661.09753242",
+      "tool_call_id": "toolu_01CEoRRoNobXeDXN6436dnnN"
+     },
+     {
+      "statement": "A 756.55 SOL buy printed at 103.66",
+      "value": "756.55287598",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Only 25.41 SOL was bid at 103.66 at 08:47:33",
+      "value": "25.41094756",
+      "tool_call_id": "toolu_013mWm8t2UkdGNgJvepAwoLj"
+     },
+     {
+      "statement": "A 60.42 SOL sell filled at 103.66",
+      "value": "60.41699337",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "A 68.93 SOL sell filled at 103.66",
+      "value": "68.92634858",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Size 60.09458578 traded as both a sell and a buy",
+      "value": "60.09458578",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Size 0.86718387 traded as both a sell and a buy",
+      "value": "0.86718387",
+      "tool_call_id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd"
+     },
+     {
+      "statement": "Largest cross-venue spread gap of 3.04 bps",
+      "value": "3.0397615919554934",
+      "tool_call_id": "toolu_01WyFdopyssGrJf28b38H8Pe"
+     },
+     {
+      "statement": "Mean cross-venue spread of -0.36 bps",
+      "value": "-0.35858306919890154",
+      "tool_call_id": "toolu_01WyFdopyssGrJf28b38H8Pe"
+     },
+     {
+      "statement": "Similar Kraken burst at 08:49:20 of 1238.59 SOL",
+      "value": "1238.5856997",
+      "tool_call_id": "toolu_01WyFdopyssGrJf28b38H8Pe"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News-driven burst: doesn't fit. Coinbase volume stayed small (1.63 SOL in the 08:47:30 bucket) and the cross-venue spread stayed normal (largest gap 3.04 bps).",
+     "Large passive order absorbing aggressive flow: only partly fits. Buyers and sellers both traded at 103.66, but the 08:47:39.5 book showed no order at 103.66 just before the 756.55 SOL buy printed there. The 08:47:33 book showed only 25.41 SOL bid at 103.66.",
+     "One venue lagging in a fast move: doesn't fit. Kraken's price range was only 4.8 bps and the two venues' prices stayed aligned.",
+     "Ordinary market-maker activity: can't be ruled out from public data. A large order posted and filled within about 100 ms at 103.66 could also explain the 756.55 SOL print, so confidence is medium."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 32,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 19,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "The case file is accurately grounded in the trade tape, three book snapshots and the Coinbase comparison, tests four benign explanations with data, and its medium-confidence escalation fits the evidence. Its weaknesses are minor: it wrongly says the size-matching is what the volume-spike detector looks for, and it doesn't compare this score with the detector's history (24-hour p95 of 125.05, a 179.65 alert at 08:34)."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 10,
+    "output_tokens": 5464,
+    "cache_read_input_tokens": 42526,
+    "cache_creation_input_tokens": 33056,
+    "cost_usd": 0.283105
+   },
+   "latency_s": 65.3,
+   "tool_calls": [
+    {
+     "id": "toolu_01D8xJtRkK5ZdtM1hqNcrGQd",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T08:47:20Z",
+      "end": "2026-10-22T08:47:50Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01WyFdopyssGrJf28b38H8Pe",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T08:45:00Z",
+      "end": "2026-10-22T08:50:00Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_01NjTgFLdsi7Ra48Scc3oqXu",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T08:42:00Z",
+      "end": "2026-10-22T08:53:00Z",
+      "stream": "inj",
+      "limit": 20
+     }
+    },
+    {
+     "id": "toolu_013mWm8t2UkdGNgJvepAwoLj",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "SOL-USD",
+      "at": "2026-10-22T08:47:33Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_01WGZ5xwsQVAyd7WzT9DdCKy",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "SOL-USD",
+      "at": "2026-10-22T08:47:45Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_01CEoRRoNobXeDXN6436dnnN",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "SOL-USD",
+      "at": "2026-10-22T08:47:39.5Z",
+      "stream": "inj"
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:BTC-USD:1792659566000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "A single 11.31 BTC Coinbase print, followed by several two-sided trades at the same fixed price of 81764.58, is behind the volume spike. These trades printed below the prices of nearby small trades and barely moved the market, which fits volume inflation better than ordinary aggressive flow.",
+    "narrative": "Between 08:59:20 and 08:59:50, Coinbase BTC-USD printed 112 trades totalling 14.53645464 BTC (1188567.56 notional), with a price range of only 2.19 bps and a buy share of 0.064. Most of that volume is one trade: at 08:59:35.086, trade 1109247532 sold 11.31476165 BTC at 81764.58. More trades of real size followed at that exact price over the next few seconds, on both sides: a buy of 0.7504857, a sell of 1.81613498 and a buy of 0.11467236. Small trades nearby were printing at 81767.35-81767.41, so these prices are out of line with the surrounding market. In the 10 s bucket starting 08:59:30, Coinbase traded 14.05428891 BTC while Kraken traded only 0.00127696 BTC, and the cross-venue spread stayed ordinary at 0.39 bps; the largest over the 7-minute window was 3.21 bps. The earlier Kraken alert window (08:59:10-08:59:30) looks like normal aggressive buying: buyers took 0.968 of the volume, a sweep at 08:59:15 walked up the ask levels to 81765.2, and the range was 2.96 bps. The wash_trade detector has 6 alerts for this product in the last 24h, the latest at 08:43:30, and none covers this window. The Coinbase order book is not collected, so I could not confirm where the best bid and ask were, and public data cannot identify the counterparties.",
+    "claims": [
+     {
+      "statement": "Coinbase printed 112 trades in 08:59:20-08:59:50",
+      "value": "112",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Total volume was 14.53645464 BTC",
+      "value": "14.53645464",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Total notional was 1188567.56",
+      "value": "1188567.555086",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Price range was 2.19 bps",
+      "value": "2.1856360901233036",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Buy volume share was 0.064",
+      "value": "0.06365724331803095",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Trade 1109247532 sold 11.31476165 BTC",
+      "value": "11.31476165",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "The large trade printed at 81764.58",
+      "value": "81764.58",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Follow-on buy of 0.7504857 at 81764.58",
+      "value": "0.7504857",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Follow-on sell of 1.81613498 at 81764.58",
+      "value": "1.81613498",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Follow-on buy of 0.11467236 at 81764.58",
+      "value": "0.11467236",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Nearby small trades printed at 81767.35",
+      "value": "81767.35",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Nearby small buys printed at 81767.41",
+      "value": "81767.41",
+      "tool_call_id": "toolu_018VPVstWncUxLAxCgPHmknR"
+     },
+     {
+      "statement": "Coinbase volume in the 08:59:30 bucket was 14.05428891 BTC",
+      "value": "14.05428891",
+      "tool_call_id": "toolu_01NTbCsrKsTbwDJbyeVMCQNn"
+     },
+     {
+      "statement": "Kraken volume in the 08:59:30 bucket was 0.00127696 BTC",
+      "value": "0.00127696",
+      "tool_call_id": "toolu_01NTbCsrKsTbwDJbyeVMCQNn"
+     },
+     {
+      "statement": "Spread in the 08:59:30 bucket was 0.39 bps",
+      "value": "0.3898698059839793",
+      "tool_call_id": "toolu_01NTbCsrKsTbwDJbyeVMCQNn"
+     },
+     {
+      "statement": "Largest absolute spread over the window was 3.21 bps",
+      "value": "3.20769229760831",
+      "tool_call_id": "toolu_01NTbCsrKsTbwDJbyeVMCQNn"
+     },
+     {
+      "statement": "Kraken buy volume share was 0.968",
+      "value": "0.9684464122956687",
+      "tool_call_id": "toolu_01HK9aFwia6b9xRySMBfvnop"
+     },
+     {
+      "statement": "Kraken sweep walked up the ask levels to 81765.2",
+      "value": "81765.2",
+      "tool_call_id": "toolu_01HK9aFwia6b9xRySMBfvnop"
+     },
+     {
+      "statement": "Kraken price range was 2.96 bps",
+      "value": "2.9598174208493453",
+      "tool_call_id": "toolu_01HK9aFwia6b9xRySMBfvnop"
+     },
+     {
+      "statement": "6 wash_trade alerts for this product in the last 24h",
+      "value": "6",
+      "tool_call_id": "toolu_01Mr2ueR2oWsf2FppydPMTGK"
+     }
+    ],
+    "benign_explanations_considered": [
+     "A news-driven or fast move on both venues: rejected. Kraken was nearly idle during the Coinbase burst, and the cross-venue spread stayed normal.",
+     "A large resting order absorbing aggressive selling: possible, since it fits the low price impact. But the 11.31 BTC sell printed below higher-priced small trades, and buys also printed at the same lower price, which absorption does not explain well. This can't be ruled out without Coinbase book data.",
+     "An aggressive sweep like the one seen on Kraken: rejected. The Coinbase prints sit at one fixed price instead of walking through levels, and they occur on both sides."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 31,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 20,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Strength: the case file pins the spike to one 11.31 BTC print, notes the two-sided trades at the same fixed price, and backs this with the other venue, the spread and the detector history, while rejecting benign explanations with data. Weakness: calling the 81764.58 prices out of line is an inference that can't be checked without Coinbase book data, though medium confidence reflects that."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5661,
+    "cache_read_input_tokens": 32066,
+    "cache_creation_input_tokens": 58052,
+    "cost_usd": 0.409925
+   },
+   "latency_s": 66.81,
+   "tool_calls": [
+    {
+     "id": "toolu_018VPVstWncUxLAxCgPHmknR",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:59:20Z",
+      "end": "2026-10-22T08:59:50Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01NTbCsrKsTbwDJbyeVMCQNn",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:56:00Z",
+      "end": "2026-10-22T09:03:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01Mr2ueR2oWsf2FppydPMTGK",
+     "name": "similar_past_alerts",
+     "input": {
+      "detector": "wash_trade",
+      "product_id": "BTC-USD",
+      "before": "2026-10-22T09:00:30Z",
+      "stream": "inj",
+      "k": 10
+     }
+    },
+    {
+     "id": "toolu_01HK9aFwia6b9xRySMBfvnop",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:59:10Z",
+      "end": "2026-10-22T08:59:30Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:ETH-USD:1792659942000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "The spike is most likely a large passive order resting near 2400.62 absorbing aggressive two-sided flow during a broader multi-minute activity burst on both venues, rather than wash-style volume inflation.",
+    "narrative": "Coinbase ETH-USD trades from 09:05:40 to 09:06:00 confirm the burst: 61 trades worth 188063.035624 notional, with price confined to 2400.51\u20132401.24 (3.04 bps). Trade IDs are contiguous (span 61), no trades were REST-backfilled, and takers were roughly balanced (buy volume share 0.418). Between about 09:05:51 and 09:05:57, most prints sat at 2400.62. Takers on both sides hit that level, including sells of 7.70576784 and buys of 6.21582678, which fits a large resting order absorbing flow. Public data cannot identify who placed it. Sizes vary widely and I found no same-size trades alternating sides. The one repeated size (3.83663334) printed twice, both as buys. Cross-venue context shows Coinbase volume was already elevated from 09:03:20, with 20-second buckets of 113.52612835 and 152.50857672 ETH. Kraken was also active, with 38.43550944 ETH in the 09:04:20 bucket. The Coinbase-Kraken spread stayed tight, with a mean of 0.16 bps and a maximum absolute value of 4.10 bps. This is the evaluation stream, and synthetic account labels are not available through these tools, so a planted same-account pattern cannot be ruled out. Coinbase book data is not collected, so the resting order is inferred from trade prints alone.",
+    "claims": [
+     {
+      "statement": "61 trades in the window",
+      "value": "61",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Notional of 188063.035624 between 09:05:40 and 09:06:00",
+      "value": "188063.035624",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Price low 2400.51",
+      "value": "2400.51",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Price high 2401.24",
+      "value": "2401.24",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Price range of 3.04 bps",
+      "value": "3.0405581298484927",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Contiguous trade IDs, span 61",
+      "value": "61",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "No REST-backfilled trades",
+      "value": "0",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Buy volume share 0.418",
+      "value": "0.41784532752912334",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Most prints at 2400.62",
+      "value": "2400.62",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Sell of 7.70576784 at 2400.62",
+      "value": "7.70576784",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Buy of 6.21582678 at 2400.62",
+      "value": "6.21582678",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Repeated size 3.83663334, both buys",
+      "value": "3.83663334",
+      "tool_call_id": "toolu_01RJxTAZghgjy59VeM3zdukx"
+     },
+     {
+      "statement": "Coinbase 09:03:20 bucket volume 113.52612835 ETH",
+      "value": "113.52612835",
+      "tool_call_id": "toolu_01NfeQ7zA8nT8i58JenzTtAd"
+     },
+     {
+      "statement": "Coinbase 09:03:40 bucket volume 152.50857672 ETH",
+      "value": "152.50857672",
+      "tool_call_id": "toolu_01NfeQ7zA8nT8i58JenzTtAd"
+     },
+     {
+      "statement": "Kraken 09:04:20 bucket volume 38.43550944 ETH",
+      "value": "38.43550944",
+      "tool_call_id": "toolu_01NfeQ7zA8nT8i58JenzTtAd"
+     },
+     {
+      "statement": "Mean cross-venue spread 0.16 bps",
+      "value": "0.1633935279666748",
+      "tool_call_id": "toolu_01NfeQ7zA8nT8i58JenzTtAd"
+     },
+     {
+      "statement": "Maximum absolute spread 4.10 bps",
+      "value": "4.098635798777393",
+      "tool_call_id": "toolu_01NfeQ7zA8nT8i58JenzTtAd"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large passive order absorbing aggressive flow: fits. Repeated two-sided prints at 2400.62 kept price nearly flat while notional was high.",
+     "Market-wide activity burst: fits. Coinbase volume was elevated for several minutes from 09:03:20 as price drifted from about 2404 to 2401, Kraken was also active, and the cross-venue spread stayed tight.",
+     "Wash-style inflation (the pattern of concern): weakly supported. Low price impact is consistent with it, but varied sizes, no same-size trades alternating sides, contiguous trade IDs and balanced taker share argue against it. Account labels were not checked."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 23,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 17,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Strength: every cited number matches the tool output, and the case file tests the resting-order, market-wide-burst and wash-trading explanations against the data, using cross-venue context. Weakness: the identical 3.83663334 size that printed twice deserved more scrutiny, though the case file does rightly limit confidence to medium because account labels and book data were missing."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 6,
+    "output_tokens": 4412,
+    "cache_read_input_tokens": 10216,
+    "cache_creation_input_tokens": 24830,
+    "cost_usd": 0.214457
+   },
+   "latency_s": 49.37,
+   "tool_calls": [
+    {
+     "id": "toolu_01RJxTAZghgjy59VeM3zdukx",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:05:40Z",
+      "end": "2026-10-22T09:06:00Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01NfeQ7zA8nT8i58JenzTtAd",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:02:00Z",
+      "end": "2026-10-22T09:09:00Z",
+      "stream": "inj",
+      "bucket_seconds": 20
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:SOL-USD:1792660857000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "high",
+    "hypothesis": "The Kraken SOL-USD volume spike comes from a burst of single-price trades that only exist on the evaluation stream, with identical sizes printing on opposite taker sides seconds apart, which fits wash-style volume inflation.",
+    "narrative": "On the evaluation stream, Kraken SOL-USD printed 45 trades worth 44115.14 notional between 09:20:50 and 09:21:20. Price stayed between 103.85 and 103.86 (0.96 bps range), and the buy volume share was 0.47. The large prints all landed at 103.86, and several sizes repeat on opposite taker sides within seconds: 33.92028545 printed as a sell and then a buy, and 36.72163898 as a sell and then two buys. The largest print, a 114.24272832 sell, did not move the price. The live stream for the same window has only 19 trades worth 2162.04 notional, and none of the large 103.86 prints, so the spike exists only on the evaluation stream. Coinbase did not take part: in the 09:21:00 bucket Kraken traded 307.6 SOL while Coinbase traded 18.6, and the venues stayed close in price (max absolute gap 2.22 bps over the four minutes). Earlier genuine Kraken flow looked different; for example, a 62.83 buy at 09:16:34 walked up through several price levels. We did not pull the order book, so a resting order at 103.86 cannot be ruled out directly. Public data cannot identify who traded, so the account-level wash_trade detector should be checked for this window.",
+    "claims": [
+     {
+      "statement": "Evaluation stream Kraken window had 45 trades",
+      "value": "45",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Notional 44115.14",
+      "value": "44115.135825",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Price low 103.85",
+      "value": "103.85",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Price high 103.86",
+      "value": "103.86",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Price range 0.96 bps",
+      "value": "0.9628809397717972",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Buy volume share 0.47",
+      "value": "0.47351692987313543",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Repeated size 33.92028545 on sell then buy",
+      "value": "33.92028545",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Repeated size 36.72163898 on sell then buys",
+      "value": "36.72163898",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Largest print 114.24272832 sell",
+      "value": "114.24272832",
+      "tool_call_id": "toolu_01BmykPadRFHJJtqAQUj3GZv"
+     },
+     {
+      "statement": "Live stream same window had 19 trades",
+      "value": "19",
+      "tool_call_id": "toolu_01CKYC5CPtja9tMMF4GEsL4y"
+     },
+     {
+      "statement": "Live stream notional 2162.04",
+      "value": "2162.043459",
+      "tool_call_id": "toolu_01CKYC5CPtja9tMMF4GEsL4y"
+     },
+     {
+      "statement": "Kraken volume 307.6 in 09:21:00 bucket",
+      "value": "307.59695078",
+      "tool_call_id": "toolu_01WqDupQ9UkkEB8XbC2B7Y5c"
+     },
+     {
+      "statement": "Coinbase volume 18.6 in 09:21:00 bucket",
+      "value": "18.63078393",
+      "tool_call_id": "toolu_01WqDupQ9UkkEB8XbC2B7Y5c"
+     },
+     {
+      "statement": "Max absolute cross-venue gap 2.22 bps",
+      "value": "2.2161711878456933",
+      "tool_call_id": "toolu_01WqDupQ9UkkEB8XbC2B7Y5c"
+     },
+     {
+      "statement": "Earlier 62.83 buy walked up price levels",
+      "value": "62.82631941",
+      "tool_call_id": "toolu_01MaC2zWbJPUiXE5JaQkhYKo"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News-driven or market-wide burst: rejected. Coinbase volume stayed low while Kraken's jumped (18.6 vs 307.6 SOL in the 09:21:00 bucket), and the two venues stayed close in price.",
+     "Large passive order absorbing aggressive flow: unlikely. Taker sides alternate with identical sizes rather than coming mostly from one side, and the live feed does not contain the volume. We did not pull the order book to check directly.",
+     "Normal busy-period activity: rejected. Nearby genuine large Kraken trades walked through several price levels, while the alert-window prints sat at a single price and are missing from the live stream."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 22,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 15,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Strength: every figure is backed by the tool output, and the file builds a strong, checkable case from three things: the same sizes printing on opposite taker sides at one price, the volume showing up on the evaluation stream but not on live, and no matching activity on Coinbase. Weakness: it never pulled the order book to rule out a resting order at 103.86, though it says so openly."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 4519,
+    "cache_read_input_tokens": 28027,
+    "cache_creation_input_tokens": 36984,
+    "cost_usd": 0.280937
+   },
+   "latency_s": 62.12,
+   "tool_calls": [
+    {
+     "id": "toolu_01BmykPadRFHJJtqAQUj3GZv",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:20:50Z",
+      "end": "2026-10-22T09:21:20Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_01MaC2zWbJPUiXE5JaQkhYKo",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:16:00Z",
+      "end": "2026-10-22T09:26:00Z",
+      "stream": "inj",
+      "limit": 50
+     }
+    },
+    {
+     "id": "toolu_01WqDupQ9UkkEB8XbC2B7Y5c",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:19:00Z",
+      "end": "2026-10-22T09:23:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01CKYC5CPtja9tMMF4GEsL4y",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:20:50Z",
+      "end": "2026-10-22T09:21:20Z",
+      "stream": "live",
+      "limit": 100
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:BTC-USD:1792661476000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "low",
+    "hypothesis": "One large aggressive buy of about 17.5 BTC on Coinbase filled entirely at one price against resting liquidity, about 40 s after a large buy sweep on Kraken; that, not repeated volume inflation, caused the alert.",
+    "narrative": "Coinbase BTC-USD traded 150 trades, 21.199 BTC and 1,731,512 notional in 09:31:10\u201309:31:40. Most of that was one trade: a 17.51924272 BTC taker buy at 81678.99 at 09:31:31.25. The next largest was a 2.14670455 BTC sell at the same price; everything else was dust to about 0.1 BTC. The whole buy filled at one price and the next prints were at 81679.99 and 81680. Price stayed within 2.27 bps over the 30 s, so the buy appears to have filled against an order resting at 81678.99. Coinbase book data is not collected, so that resting order can't be confirmed. About 40 s earlier, at 09:30:51.75, a buy on Kraken took out many price levels from 81677.1 to 81697.9, and Kraken traded 29.9 BTC in that 10 s bucket. Kraken buy share for 09:30:40\u201309:31:40 was 0.90, so both venues saw heavy buying within the same minute. The Coinbase\u2013Kraken spread stayed small around the alert: +1.12 bps in the 09:31:20 bucket and -0.46 bps in the 09:31:30 bucket. In the 4 minutes after, Coinbase traded 753,698 notional in 972 trades, with no repeat of the large size. One small pair matched exactly (0.10385806 BTC bought then sold at 81678.99), but it is too small to matter, and public data cannot show who was on either side. These data can't tell an injected wash trade apart from a genuine large buy; check the evaluation labels or the wash_trade detector to settle it.",
+    "claims": [
+     {
+      "statement": "Coinbase window had 150 trades",
+      "value": "150",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Window volume 21.199 BTC",
+      "value": "21.19902046",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Window notional 1,731,512",
+      "value": "1731511.892766",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Single taker buy of 17.51924272 BTC",
+      "value": "17.51924272",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Large buy price 81678.99",
+      "value": "81678.99",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Second largest trade 2.14670455 BTC sell",
+      "value": "2.14670455",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Next print after large buy at 81679.99",
+      "value": "81679.99",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Subsequent print at 81680",
+      "value": "81680",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "30 s price range 2.27 bps",
+      "value": "2.2735443607743933",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Small matched pair of 0.10385806 BTC",
+      "value": "0.10385806",
+      "tool_call_id": "toolu_01McFBjWpysYXsqP96LhgzsM"
+     },
+     {
+      "statement": "Kraken sweep low price 81677.1",
+      "value": "81677.1",
+      "tool_call_id": "toolu_01FdXkx2GWa9HSSRbub2nSmV"
+     },
+     {
+      "statement": "Kraken sweep high price 81697.9",
+      "value": "81697.9",
+      "tool_call_id": "toolu_01FdXkx2GWa9HSSRbub2nSmV"
+     },
+     {
+      "statement": "Kraken buy share 0.90",
+      "value": "0.8995297933211011",
+      "tool_call_id": "toolu_01FdXkx2GWa9HSSRbub2nSmV"
+     },
+     {
+      "statement": "Kraken traded 29.9 BTC in the 09:30:50 bucket",
+      "value": "29.91802768",
+      "tool_call_id": "toolu_01LR4bpjizgBxNNn2FgHwsQw"
+     },
+     {
+      "statement": "Spread +1.12 bps in the 09:31:20 bucket",
+      "value": "1.116859984281244",
+      "tool_call_id": "toolu_01LR4bpjizgBxNNn2FgHwsQw"
+     },
+     {
+      "statement": "Spread -0.46 bps in the 09:31:30 bucket",
+      "value": "-0.45502035412568",
+      "tool_call_id": "toolu_01LR4bpjizgBxNNn2FgHwsQw"
+     },
+     {
+      "statement": "Post-window notional 753,698",
+      "value": "753697.987691",
+      "tool_call_id": "toolu_01FWvVjyZMXoDVUuVZiSbJ3e"
+     },
+     {
+      "statement": "Post-window 972 trades",
+      "value": "972",
+      "tool_call_id": "toolu_01FWvVjyZMXoDVUuVZiSbJ3e"
+     }
+    ],
+    "benign_explanations_considered": [
+     "A large order resting at one price absorbed one aggressive buyer. This fits: the 17.5 BTC filled entirely at 81678.99, trading resumed right after at the next price up, and nothing similar followed.",
+     "Buying spilled over from Kraken. This fits partly: Kraken had a large buy that took out many price levels about 40 s earlier, with 0.90 buy share, but on Coinbase the activity was one trade rather than a broad burst.",
+     "Wash-style volume inflation. Not supported: I found no repeated back-and-forth of the large size, and the only matched pair was 0.10385806 BTC. Public data can't show who was on either side, so this can't be fully ruled out.",
+     "One venue lagging in a fast move. Doesn't fit: the cross-venue spread stayed near zero around the alert window."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 33,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 18,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "The case file correctly traces the alert to one 17.52 BTC taker buy at 81678.99, checks it against Kraken's buy sweep, the cross-venue spread and the periods before and after, and supports every figure with a tool result. One weakness is that it doesn't mention the -16.8 bps spread move at 09:33:30, and two time references are slightly loose, but its low confidence fits its own admission that it can't tell a wash trade from a real buy."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5425,
+    "cache_read_input_tokens": 44857,
+    "cache_creation_input_tokens": 70424,
+    "cost_usd": 0.469623
+   },
+   "latency_s": 68.66,
+   "tool_calls": [
+    {
+     "id": "toolu_01McFBjWpysYXsqP96LhgzsM",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:31:10Z",
+      "end": "2026-10-22T09:31:40Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01LR4bpjizgBxNNn2FgHwsQw",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:28:00Z",
+      "end": "2026-10-22T09:35:00Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_01FdXkx2GWa9HSSRbub2nSmV",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:30:40Z",
+      "end": "2026-10-22T09:31:40Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    },
+    {
+     "id": "toolu_01FWvVjyZMXoDVUuVZiSbJ3e",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:31:40Z",
+      "end": "2026-10-22T09:36:00Z",
+      "stream": "inj",
+      "limit": 5
+     }
+    },
+    {
+     "id": "toolu_01Fw7W69BjrUefXEHVGBHftq",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:26:00Z",
+      "end": "2026-10-22T09:31:10Z",
+      "stream": "inj",
+      "limit": 5
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:BTC-USD:1792661864000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "A burst of large Coinbase BTC-USD prints, nearly all at one price (81706.96), inflated volume with little price impact. It includes an off-market 5.92 BTC buy after the market had traded about 30 USD lower, which fits volume inflation better than real buying or selling.",
+    "narrative": "From 09:37:40 to 09:38:10, Coinbase BTC-USD printed 129 trades for 13.64582873 BTC (notional 1114941.16) over a price range of only 4.3 bps, with a buy volume share of 0.89. Almost all of this volume came from a handful of large prints at 81706.96 between 09:37:52 and 09:37:59, including 2.61146477 and 1.78508479 BTC buys. Two sells of exactly 0.18406219 BTC printed at that same price about four seconds apart. The largest print, a 5.9241766 BTC buy at 81706.96 at 09:37:58.80, came after the market had already traded down to 81676.59, and trading went on at 81676.59 right after it. That makes it an off-market print, which a resting passive order soaking up buyers would not produce. Coinbase's 09:37:50 bucket traded 13.11658508 BTC, while Kraken traded only 0.03849737 BTC in the same bucket. The cross-venue spread peaked at just 2.12 bps, against an 8-minute maximum of 2.83 bps, so there was no cross-market move or news-driven burst. Public data cannot identify who traded. The repeated identical sizes and the stale-price print are worth checking against the wash_trade detector and the inj-stream labels. All trades carry the 'replay' source tag.",
+    "claims": [
+     {
+      "statement": "129 trades in 09:37:40-09:38:10 on Coinbase",
+      "value": "129",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "Volume of 13.64582873 BTC",
+      "value": "13.64582873",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "Notional of 1114941.16",
+      "value": "1114941.16321",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "Price range of 4.3 bps",
+      "value": "4.299210876905587",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "Buy volume share of 0.89",
+      "value": "0.8912990534067768",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "Large prints clustered at 81706.96",
+      "value": "81706.96",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "2.61146477 BTC buy at 81706.96",
+      "value": "2.61146477",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "1.78508479 BTC buy at 81706.96",
+      "value": "1.78508479",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "Two sells of exactly 0.18406219 BTC at the same price",
+      "value": "0.18406219",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "5.9241766 BTC buy at 81706.96 at 09:37:58.80",
+      "value": "5.9241766",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "Market had already traded down to 81676.59",
+      "value": "81676.59",
+      "tool_call_id": "toolu_013opZcViLSJcjctwvtcE7zx"
+     },
+     {
+      "statement": "Coinbase 09:37:50 bucket volume of 13.11658508 BTC",
+      "value": "13.11658508",
+      "tool_call_id": "toolu_01FY4WLeUsDdYhpHM6JNmGWJ"
+     },
+     {
+      "statement": "Kraken volume in the same bucket of 0.03849737 BTC",
+      "value": "0.03849737",
+      "tool_call_id": "toolu_01FY4WLeUsDdYhpHM6JNmGWJ"
+     },
+     {
+      "statement": "Cross-venue spread peaked at 2.12 bps in that bucket",
+      "value": "2.115457982800815",
+      "tool_call_id": "toolu_01FY4WLeUsDdYhpHM6JNmGWJ"
+     },
+     {
+      "statement": "8-minute maximum absolute spread of 2.83 bps",
+      "value": "2.83057368780928",
+      "tool_call_id": "toolu_01FY4WLeUsDdYhpHM6JNmGWJ"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News-driven burst or fast market: does not fit. Kraken traded only 0.03849737 BTC in the same 10 s bucket, the cross-venue spread stayed within its normal few-bps range (peak 2.12 bps), and the price drifted down rather than moving sharply.",
+     "Large passive resting order absorbing aggressive buyers at the offer: partly fits the run of buys at 81706.96 from 09:37:53 to 09:37:55. It does not explain sells printing at that same price, or the 5.9241766 BTC buy at 81706.96 after the market had already traded at 81676.59.",
+     "Market-maker re-quoting or ordinary retail flow: does not fit. Volume in the 09:37:50 bucket (13.11658508 BTC) is far above every other bucket in the 8-minute context window, which were all at most about 1.43 BTC."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 24,
+    "ungrounded_numbers": [
+     "09:37:58.80"
+    ],
+    "groundedness": 0.9583,
+    "claims": 15,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Strength: the narrative is grounded in trade-level detail that checks out against the tool output: the cluster of prints at 81706.96, two sells of 0.18406219 BTC, and a 5.92 BTC buy at 81706.96 after a trade at 81676.59. It is backed by a comparison with Kraken and the eight-minute history and weighs three ordinary explanations with data. Weakness: the 30-second query window is wider than the alert's own window (1.11M vs 1.08M notional), and the case file never says whether the inj stream matches the alert's stream."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 6,
+    "output_tokens": 4594,
+    "cache_read_input_tokens": 10215,
+    "cache_creation_input_tokens": 45102,
+    "cost_usd": 0.319457
+   },
+   "latency_s": 51.8,
+   "tool_calls": [
+    {
+     "id": "toolu_013opZcViLSJcjctwvtcE7zx",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:37:40Z",
+      "end": "2026-10-22T09:38:10Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01FY4WLeUsDdYhpHM6JNmGWJ",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:34:00Z",
+      "end": "2026-10-22T09:42:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:SOL-USD:1792662042000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "A short burst of two-way Kraken SOL-USD trading at one price, with sizes that repeat across buys and sells and no matching activity on Coinbase, is consistent with wash-style volume inflation rather than real price discovery.",
+    "narrative": "Kraken SOL-USD printed 43 trades worth 32586.55 in notional between 09:40:30 and 09:41:10. From 09:40:39.96 to 09:40:54.22, every trade printed at 103.71, with buyer- and seller-initiated trades alternating within fractions of a second. The same sizes show up on both sides: 0.38157224 appears repeatedly as both buys and sells, 7.71680228 was a buy and then a sell, and 5.2312 was a buy at 103.68 and then a sell at 103.71. That back-and-forth sizing is the pattern the wash detector looks for. Book snapshots at 09:40:40 and 09:40:48 show a best bid of 103.71 and a best ask of 103.72, yet buyer-initiated trades such as 32.68074718 and 19.70057456 printed at 103.71. The book can change between snapshots, so this is a red flag rather than proof. Coinbase did not take part: in the 09:40:40 bucket Kraken traded 200.45 SOL against Coinbase's 1.10, and the gap between the two venues' prices never went beyond 2.76 bps. A large resting bid (115.1 at 09:40:40, 143.7 at 09:40:48) partly explains why the price held, but it does not explain the repeated sizes or the buy prints at the bid. Public data cannot identify who placed these orders.",
+    "claims": [
+     {
+      "statement": "Kraken printed 43 trades between 09:40:30 and 09:41:10",
+      "value": "43",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "Notional over that window was 32586.55",
+      "value": "32586.550778",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "From 09:40:39.96 to 09:40:54.22 every trade printed at 103.71",
+      "value": "103.71",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "Size 0.38157224 appears as both buys and sells",
+      "value": "0.38157224",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "Size 7.71680228 was a buy and then a sell",
+      "value": "7.71680228",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "Size 5.2312 was a buy at 103.68 and then a sell at 103.71",
+      "value": "5.2312",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "The 5.2312 buy printed at 103.68",
+      "value": "103.68",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "Buyer-initiated trade of 32.68074718 printed at 103.71",
+      "value": "32.68074718",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "Buyer-initiated trade of 19.70057456 printed at 103.71",
+      "value": "19.70057456",
+      "tool_call_id": "toolu_01W4VAxLoe2JorEv28zfDWGF"
+     },
+     {
+      "statement": "Best ask was 103.72 at 09:40:48",
+      "value": "103.72",
+      "tool_call_id": "toolu_0177h1dJcFk9n4aCuT3MVLmT"
+     },
+     {
+      "statement": "Best ask was 103.72 at 09:40:40",
+      "value": "103.72",
+      "tool_call_id": "toolu_017dDVHiJM9yB7L5WWqP98WD"
+     },
+     {
+      "statement": "Bid size at 103.71 was 115.1 at 09:40:40",
+      "value": "115.11509673",
+      "tool_call_id": "toolu_017dDVHiJM9yB7L5WWqP98WD"
+     },
+     {
+      "statement": "Bid size at 103.71 was 143.7 at 09:40:48",
+      "value": "143.72225906",
+      "tool_call_id": "toolu_0177h1dJcFk9n4aCuT3MVLmT"
+     },
+     {
+      "statement": "Kraken traded 200.45 SOL in the 09:40:40 bucket",
+      "value": "200.44504667",
+      "tool_call_id": "toolu_015QFt9U3aALBuPE2Nxe1aLz"
+     },
+     {
+      "statement": "Coinbase traded 1.10 SOL in the 09:40:40 bucket",
+      "value": "1.09610391",
+      "tool_call_id": "toolu_015QFt9U3aALBuPE2Nxe1aLz"
+     },
+     {
+      "statement": "The gap between venue prices never went beyond 2.76 bps",
+      "value": "2.762397716080971",
+      "tool_call_id": "toolu_015QFt9U3aALBuPE2Nxe1aLz"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News or market-wide burst: does not fit. Coinbase volume stayed low during the burst (1.10 SOL in the 09:40:40 bucket against Kraken's 200.45) and prices did not move on either venue.",
+     "Large resting bid absorbing aggressive selling: partly fits, because the 103.71 bid held and grew between snapshots. It does not explain the buyer-initiated trades printing at 103.71 while the best ask was 103.72, or the identical sizes appearing on both sides.",
+     "Market makers re-quoting or splitting orders: could produce repeated sizes, but would not normally produce identical sizes alternating as buyer- and seller-initiated trades at one price within seconds."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 27,
+    "ungrounded_numbers": [
+     "09:40:54.22"
+    ],
+    "groundedness": 0.963,
+    "claims": 16,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "The case file's specific claims match the tool output: one-price prints at 103.71, identical sizes on both sides, buyer-initiated trades at the bid while the best ask was 103.72, and minimal Coinbase volume. Several data-backed ordinary explanations are weighed, and the medium-confidence escalation fits. Minor weaknesses: it does not use the given detector history of repeated Kraken spikes with little price movement, and it says prices did not move on either venue even though Kraken's range was about 5.8 bps."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5227,
+    "cache_read_input_tokens": 25539,
+    "cache_creation_input_tokens": 30522,
+    "cost_usd": 0.26229
+   },
+   "latency_s": 55.5,
+   "tool_calls": [
+    {
+     "id": "toolu_01W4VAxLoe2JorEv28zfDWGF",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:40:30Z",
+      "end": "2026-10-22T09:41:10Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_015QFt9U3aALBuPE2Nxe1aLz",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:38:00Z",
+      "end": "2026-10-22T09:44:00Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_01JoDqa7AxG4NCpw1MBeNZCZ",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:35:00Z",
+      "end": "2026-10-22T09:46:00Z",
+      "stream": "inj",
+      "limit": 5
+     }
+    },
+    {
+     "id": "toolu_0177h1dJcFk9n4aCuT3MVLmT",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "SOL-USD",
+      "at": "2026-10-22T09:40:48Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    },
+    {
+     "id": "toolu_017dDVHiJM9yB7L5WWqP98WD",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "SOL-USD",
+      "at": "2026-10-22T09:40:40Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:BTC-USD:1792662378000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "Inside the alert window, Kraken BTC-USD volume was inflated by trades printing back and forth at one price below the visible best bid, with matching sizes on both taker sides. This fits wash-style volume inflation better than real one-directional demand.",
+    "narrative": "Inside the alert's evidence window, nearly every Kraken BTC-USD trade printed at 81714.5, with both buy and sell takers. The Kraken book snapshot taken mid-window showed best bid 81717.1 and best ask 81717.2, with no visible level at 81714.5. Over the same seconds, small buys filled normally at the ask of 81717.2. Several sizes appear on both sides: 0.10641445 printed once as a sell and once as a buy, and 0.00128182 did the same. The largest prints in the window, 0.72004766 (sell) and 0.28118697 (buy), were both at 81714.5. Coinbase was quiet over the same period, trading 30380.480907 notional with a 0.36 bps range. The 30-second cross-venue spread never exceeded 1.94 bps in absolute terms, so this was not a burst across both venues. An earlier aggressive sell sweep walked the book down to 81713.5, but it came before this window. Caveat: there is only one book snapshot, taken about 1.5 s before the largest prints, and public data carries no account identity, so the matching sizes are a pattern only and say nothing about who traded.",
+    "claims": [
+     {
+      "statement": "Nearly every Kraken trade in the window printed at 81714.5",
+      "value": "81714.5",
+      "tool_call_id": "toolu_01GCfmXRHgwNz8aQpTP1cG6C"
+     },
+     {
+      "statement": "Kraken best bid at the mid-window snapshot was 81717.1",
+      "value": "81717.1",
+      "tool_call_id": "toolu_01KiHNsp68Q1z9FTpHQ8ZyQz"
+     },
+     {
+      "statement": "Kraken best ask at the mid-window snapshot was 81717.2",
+      "value": "81717.2",
+      "tool_call_id": "toolu_01KiHNsp68Q1z9FTpHQ8ZyQz"
+     },
+     {
+      "statement": "Small buys filled at the ask of 81717.2",
+      "value": "81717.2",
+      "tool_call_id": "toolu_01GCfmXRHgwNz8aQpTP1cG6C"
+     },
+     {
+      "statement": "Size 0.10641445 printed as both a sell and a buy",
+      "value": "0.10641445",
+      "tool_call_id": "toolu_01GCfmXRHgwNz8aQpTP1cG6C"
+     },
+     {
+      "statement": "Size 0.00128182 printed as both a sell and a buy",
+      "value": "0.00128182",
+      "tool_call_id": "toolu_01GCfmXRHgwNz8aQpTP1cG6C"
+     },
+     {
+      "statement": "Largest sell print in the window was 0.72004766",
+      "value": "0.72004766",
+      "tool_call_id": "toolu_01GCfmXRHgwNz8aQpTP1cG6C"
+     },
+     {
+      "statement": "Largest buy print in the window was 0.28118697",
+      "value": "0.28118697",
+      "tool_call_id": "toolu_01GCfmXRHgwNz8aQpTP1cG6C"
+     },
+     {
+      "statement": "Coinbase traded 30380.480907 notional over the same period",
+      "value": "30380.480907",
+      "tool_call_id": "toolu_01Ht5D1wvBBsNZdMgFsq2f1K"
+     },
+     {
+      "statement": "Coinbase price range was 0.36 bps",
+      "value": "0.36466646295924876",
+      "tool_call_id": "toolu_01Ht5D1wvBBsNZdMgFsq2f1K"
+     },
+     {
+      "statement": "Maximum absolute 30-second cross-venue spread was 1.94 bps",
+      "value": "1.9420713299259287",
+      "tool_call_id": "toolu_012iNBXDtavfs2pSt5JKVVaa"
+     },
+     {
+      "statement": "An earlier sell sweep walked the book down to 81713.5",
+      "value": "81713.5",
+      "tool_call_id": "toolu_01GCfmXRHgwNz8aQpTP1cG6C"
+     }
+    ],
+    "benign_explanations_considered": [
+     "A large passive order absorbing aggressive flow: does not fit. A resting order would sit on one side of the book. Here fills went both ways at a price below the best bid, and that price was not a visible level in the snapshot.",
+     "A real sweep or news-driven burst: does not fit this window. The genuine aggressive sell sweep came earlier and matches the prior alert. During this window the price stayed flat at one level and Coinbase was quiet.",
+     "A burst across both venues or one venue lagging: does not fit. The Coinbase-Kraken spread stayed small and Coinbase volume showed no matching spike.",
+     "Ordinary detector noise: the alert's score is high but not extreme against the detector's recent base rate, so the escalation rests on the trade structure, not the score."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 16,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 12,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "The case file rests on specific trade-level evidence that checks out against the tool results: prints at 81714.5 below the snapshot's best bid of 81717.1, with the same sizes appearing as both buys and sells. It also compares against Coinbase, the earlier sweep and the base rate, and makes no claim about who traded. Its main weakness is a small timing imprecision: the snapshot was about 1.5 s before the 0.28 print but about 4.8 s before the largest (0.72) print, and only one snapshot backs the below-bid claim, which medium confidence appropriately reflects."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 4925,
+    "cache_read_input_tokens": 29761,
+    "cache_creation_input_tokens": 39476,
+    "cost_usd": 0.301864
+   },
+   "latency_s": 56.53,
+   "tool_calls": [
+    {
+     "id": "toolu_01GCfmXRHgwNz8aQpTP1cG6C",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:46:00Z",
+      "end": "2026-10-22T09:47:00Z",
+      "stream": "inj",
+      "limit": 300
+     }
+    },
+    {
+     "id": "toolu_012iNBXDtavfs2pSt5JKVVaa",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:42:00Z",
+      "end": "2026-10-22T09:50:00Z",
+      "stream": "inj",
+      "bucket_seconds": 30
+     }
+    },
+    {
+     "id": "toolu_01KiHNsp68Q1z9FTpHQ8ZyQz",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T09:46:25Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    },
+    {
+     "id": "toolu_01Ht5D1wvBBsNZdMgFsq2f1K",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:46:15Z",
+      "end": "2026-10-22T09:46:40Z",
+      "stream": "inj",
+      "limit": 5
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:BTC-USD:1792662653000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "Two large Kraken prints on opposite sides at the same price (81803.5) that the reconstructed book does not support inflated 10-second notional without moving price, which fits wash-style volume inflation.",
+    "narrative": "From 09:50:50 to 09:51:15, Kraken BTC-USD printed 40 trades totalling 5.10206901 BTC (417367.103152 notional), with a price range of only 0.0122 bps. Almost all of that volume came from two trades at 81803.5: a 1.29435368 BTC buy at 09:51:02.070 and a 3.6486351 BTC sell at 09:51:07.539. The buy printed at the bid price even though the book at 09:51:02 showed a best ask of 3.08554897 BTC at 81803.6. The sell was larger than the 0.57138054 BTC resting at the best bid at 09:51:07.5. No trades printed below 81803.5, and by 09:51:07.7 that bid had grown to 0.77881483 BTC rather than being used up. Coinbase showed no matching surge: it traded 96656.857285 notional over the same window. In the 09:51:00 bucket, Kraken volume was 5.06444394 BTC against 0.82769439 BTC on Coinbase. The cross-venue spread stayed tight, with a maximum absolute value of 2.71 bps over 09:47\u201309:55, so a market-wide move does not explain the spike. Hidden or iceberg liquidity and feed-timing gaps could partly explain the book mismatch, and the two prints are different sizes. Public data carries no identity, so the wash_trade detector on the evaluation stream would be needed to confirm whether the same account was on both sides.",
+    "claims": [
+     {
+      "statement": "Kraken printed 40 trades in the window",
+      "value": "40",
+      "tool_call_id": "toolu_01M3H5DuyVyRt8G8AaB8Noja"
+     },
+     {
+      "statement": "Kraken volume 5.10206901 BTC",
+      "value": "5.10206901",
+      "tool_call_id": "toolu_01M3H5DuyVyRt8G8AaB8Noja"
+     },
+     {
+      "statement": "Kraken notional 417367.103152",
+      "value": "417367.103152",
+      "tool_call_id": "toolu_01M3H5DuyVyRt8G8AaB8Noja"
+     },
+     {
+      "statement": "Price range 0.0122 bps",
+      "value": "0.01222440835391618",
+      "tool_call_id": "toolu_01M3H5DuyVyRt8G8AaB8Noja"
+     },
+     {
+      "statement": "Both large trades at 81803.5",
+      "value": "81803.5",
+      "tool_call_id": "toolu_01M3H5DuyVyRt8G8AaB8Noja"
+     },
+     {
+      "statement": "1.29435368 BTC buy at 09:51:02.070",
+      "value": "1.29435368",
+      "tool_call_id": "toolu_01M3H5DuyVyRt8G8AaB8Noja"
+     },
+     {
+      "statement": "3.6486351 BTC sell at 09:51:07.539",
+      "value": "3.6486351",
+      "tool_call_id": "toolu_01M3H5DuyVyRt8G8AaB8Noja"
+     },
+     {
+      "statement": "Best ask at 09:51:02 was 3.08554897 BTC",
+      "value": "3.08554897",
+      "tool_call_id": "toolu_01U3d2zd9ZT8QDiBxtxLXcQd"
+     },
+     {
+      "statement": "Best ask price at 09:51:02 was 81803.6",
+      "value": "81803.6",
+      "tool_call_id": "toolu_01U3d2zd9ZT8QDiBxtxLXcQd"
+     },
+     {
+      "statement": "Best bid at 09:51:07.5 had 0.57138054 BTC",
+      "value": "0.57138054",
+      "tool_call_id": "toolu_01JQ3K57PrQDSJxLpmrN9kB8"
+     },
+     {
+      "statement": "Bid at 81803.5 grew to 0.77881483 by 09:51:07.7",
+      "value": "0.77881483",
+      "tool_call_id": "toolu_01L7KXuWaGKty1iiE5yW4oBz"
+     },
+     {
+      "statement": "Coinbase traded 96656.857285 notional over the same window",
+      "value": "96656.857285",
+      "tool_call_id": "toolu_01Sdc8jMCfmQLdSbKw14RoUb"
+     },
+     {
+      "statement": "Kraken volume 5.06444394 BTC in the 09:51:00 bucket",
+      "value": "5.06444394",
+      "tool_call_id": "toolu_01GH5fvfTskBubn6jUV3YBSV"
+     },
+     {
+      "statement": "Coinbase volume 0.82769439 BTC in the 09:51:00 bucket",
+      "value": "0.82769439",
+      "tool_call_id": "toolu_01GH5fvfTskBubn6jUV3YBSV"
+     },
+     {
+      "statement": "Maximum absolute cross-venue spread of 2.71 bps",
+      "value": "2.7074645200537737",
+      "tool_call_id": "toolu_01GH5fvfTskBubn6jUV3YBSV"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large passive or iceberg order absorbing aggressive flow: this could explain the sell being larger than the visible bid. It does not explain a buy printing at the bid while a full ask rested at 81803.6, or the bid growing instead of shrinking after the sell. Partial fit at best.",
+     "News-driven or cross-venue burst: Coinbase volume over the same window was ordinary, and the Coinbase-Kraken spread stayed within about 2.7 bps. The burst was confined to Kraken. Does not fit.",
+     "Feed or reconstruction artefact (hidden orders, timing gaps between the trade feed and book updates): this cannot be ruled out from public data and is the main reason confidence is medium rather than high."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 26,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 15,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Strength: every figure traces to the tool results, and the case file ties two specific Kraken prints to book snapshots that contradict them, then rules out a market-wide burst using Coinbase trades and the cross-venue spread. Weakness: it calls Coinbase activity ordinary without mentioning the Coinbase volume alerts seconds earlier in the history it was given, though the escalation with medium confidence still fits the evidence."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 10,
+    "output_tokens": 5398,
+    "cache_read_input_tokens": 54336,
+    "cache_creation_input_tokens": 44033,
+    "cost_usd": 0.339032
+   },
+   "latency_s": 61.77,
+   "tool_calls": [
+    {
+     "id": "toolu_01M3H5DuyVyRt8G8AaB8Noja",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:50:50Z",
+      "end": "2026-10-22T09:51:15Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01GH5fvfTskBubn6jUV3YBSV",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:47:00Z",
+      "end": "2026-10-22T09:55:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01Sdc8jMCfmQLdSbKw14RoUb",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:50:50Z",
+      "end": "2026-10-22T09:51:15Z",
+      "stream": "inj",
+      "limit": 50
+     }
+    },
+    {
+     "id": "toolu_01JQ3K57PrQDSJxLpmrN9kB8",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T09:51:07.5Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    },
+    {
+     "id": "toolu_01U3d2zd9ZT8QDiBxtxLXcQd",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T09:51:02Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    },
+    {
+     "id": "toolu_01L7KXuWaGKty1iiE5yW4oBz",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T09:51:07.7Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:BTC-USD:1792662696000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "A single burst of aggressive selling on Kraken filled against a large bid resting at the best price; that bid absorbed the selling, so the price barely moved.",
+    "narrative": "Between 09:51:30 and 09:52:00, Kraken BTC-USD printed 39 trades for 142286.87 notional. Buyers started only 0.0139 of that volume. Most of it came in one burst at 09:51:45.905, when several sells filled at 81795.8; the largest was 0.9388548 BTC. The Kraken book at 09:51:45 showed 2.00565612 BTC bid at 81795.8 with a 0.012 bps spread. At 09:51:47 that level had dropped to 0.37282161 BTC, and the best bid and ask were unchanged at 81795.8 and 81795.9. This shows a visible resting bid taking the sells, not matched back-and-forth trading. Coinbase traded 0.60384924 BTC in the same 10 s bucket, against 1.72850859 BTC on Kraken, and the cross-venue spread was 0.205 bps. Across all 30 buckets the largest spread was 2.71 bps, which points to a Kraken-only event, not a market-wide burst. Over the wider window from 09:45 to 09:58, Kraken flow was balanced: buyers started 0.494 of the volume and the price range was 17.67 bps. Public data cannot show who was on either side. To rule out the same party trading with itself, check the account labels on the evaluation stream.",
+    "claims": [
+     {
+      "statement": "39 trades in the 09:51:30-09:52:00 window on Kraken",
+      "value": "39",
+      "tool_call_id": "toolu_01RUYUGGYLE5zCpDBTPM2BVB"
+     },
+     {
+      "statement": "Window notional 142286.87",
+      "value": "142286.865459",
+      "tool_call_id": "toolu_01RUYUGGYLE5zCpDBTPM2BVB"
+     },
+     {
+      "statement": "Buy volume share 0.0139",
+      "value": "0.013927571445493834",
+      "tool_call_id": "toolu_01RUYUGGYLE5zCpDBTPM2BVB"
+     },
+     {
+      "statement": "Sells filled at 81795.8 in the burst",
+      "value": "81795.8",
+      "tool_call_id": "toolu_01RUYUGGYLE5zCpDBTPM2BVB"
+     },
+     {
+      "statement": "Largest burst fill 0.9388548 BTC",
+      "value": "0.9388548",
+      "tool_call_id": "toolu_01RUYUGGYLE5zCpDBTPM2BVB"
+     },
+     {
+      "statement": "Bid of 2.00565612 BTC at 81795.8 at 09:51:45",
+      "value": "2.00565612",
+      "tool_call_id": "toolu_01WVgZuV5zynMFRv5iPCqjEN"
+     },
+     {
+      "statement": "Book spread 0.012 bps at 09:51:45",
+      "value": "0.012225559120664435",
+      "tool_call_id": "toolu_01WVgZuV5zynMFRv5iPCqjEN"
+     },
+     {
+      "statement": "Best bid level reduced to 0.37282161 BTC at 09:51:47",
+      "value": "0.37282161",
+      "tool_call_id": "toolu_01TuMfZt9Q4D1pym4f8kMwQo"
+     },
+     {
+      "statement": "Best ask unchanged at 81795.9",
+      "value": "81795.9",
+      "tool_call_id": "toolu_01TuMfZt9Q4D1pym4f8kMwQo"
+     },
+     {
+      "statement": "Coinbase volume 0.60384924 BTC in the 09:51:40 bucket",
+      "value": "0.60384924",
+      "tool_call_id": "toolu_01UJNT6jZPGdifCL6SCXMw7R"
+     },
+     {
+      "statement": "Kraken volume 1.72850859 BTC in the 09:51:40 bucket",
+      "value": "1.72850859",
+      "tool_call_id": "toolu_01UJNT6jZPGdifCL6SCXMw7R"
+     },
+     {
+      "statement": "Cross-venue spread 0.205 bps in the 09:51:40 bucket",
+      "value": "0.20507528622780496",
+      "tool_call_id": "toolu_01UJNT6jZPGdifCL6SCXMw7R"
+     },
+     {
+      "statement": "30 buckets with both venues trading",
+      "value": "30",
+      "tool_call_id": "toolu_01UJNT6jZPGdifCL6SCXMw7R"
+     },
+     {
+      "statement": "Max absolute spread 2.71 bps",
+      "value": "2.7074645200537737",
+      "tool_call_id": "toolu_01UJNT6jZPGdifCL6SCXMw7R"
+     },
+     {
+      "statement": "Buy volume share 0.494 from 09:45 to 09:58",
+      "value": "0.49407933782549723",
+      "tool_call_id": "toolu_01FvHSYRADUZNBQHQXjowSRG"
+     },
+     {
+      "statement": "Price range 17.67 bps from 09:45 to 09:58",
+      "value": "17.673538554304546",
+      "tool_call_id": "toolu_01FvHSYRADUZNBQHQXjowSRG"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large resting bid absorbing aggressive flow: fits. A 2.00565612 BTC bid at 81795.8 absorbed one-sided sells, and the touch was unchanged afterwards.",
+     "News-driven or market-wide burst: does not fit. Coinbase had no matching surge, and the cross-venue spread stayed within 2.71 bps.",
+     "Wash-style volume inflation: not supported. Flow was almost entirely seller-initiated with no matching back-and-forth sizes, though public data cannot rule out the same party trading with itself."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 26,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 16,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Main strength: the absorption story is backed by book snapshots taken just before and after the burst (the bid at 81795.8 fell by about 1.63 BTC, close to the size of the burst, and the best bid and ask didn't move), a cross-venue check, and a wider window, all with accurate figures and medium confidence. Main weakness: the file treats this as a single event and doesn't mention that the history it was given shows repeated large Kraken spikes in the same minutes (99.9 sigma at 09:51:12, 15.0 sigma at 09:49:45), nor the 5.06 BTC Kraken bucket at 09:51:00."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 4770,
+    "cache_read_input_tokens": 28606,
+    "cache_creation_input_tokens": 37639,
+    "cost_usd": 0.289348
+   },
+   "latency_s": 58.28,
+   "tool_calls": [
+    {
+     "id": "toolu_01RUYUGGYLE5zCpDBTPM2BVB",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:51:30Z",
+      "end": "2026-10-22T09:52:00Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01FvHSYRADUZNBQHQXjowSRG",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:45:00Z",
+      "end": "2026-10-22T09:58:00Z",
+      "stream": "inj",
+      "limit": 50
+     }
+    },
+    {
+     "id": "toolu_01UJNT6jZPGdifCL6SCXMw7R",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:49:00Z",
+      "end": "2026-10-22T09:54:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01WVgZuV5zynMFRv5iPCqjEN",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T09:51:45Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    },
+    {
+     "id": "toolu_01TuMfZt9Q4D1pym4f8kMwQo",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T09:51:47Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:ETH-USD:1792662939000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "The Coinbase ETH-USD spike was a real aggressive buy sweep followed by a run of two-sided trades at one fixed price (2403.26) with exactly repeating sizes and prices that conflict with nearby prints, which matches wash-style volume inflation.",
+    "narrative": "From 09:55:30 to 09:56:05, Coinbase ETH-USD printed 70 trades for 156187.19 notional, with a price range of only 4.33 bps and a buy share of 0.49. Part of that volume was a multi-level buy sweep at 09:55:48.203 that climbed from 2403.08 to 2403.6. Most of the rest printed at exactly 2403.26, with aggressors on both sides, including sells of 11.22126 and 11.10311569 ETH. Some sizes repeat exactly in opposite directions: 0.12220306 was sold and then bought within the same second, and 0.05404048 was sold at 09:55:49 and bought at 09:55:58. Seller-initiated prints at 2404.01 around 09:55:56.8 were followed by a buyer-initiated print at 2403.26. Both can't come from the same normal order book, so the 2403.26 trades don't fit the market around them. Kraken over the same window traded only 0.77498601 ETH (1862.61 notional), and the Coinbase-Kraken spread stayed tight (largest 2.63 bps across 20 buckets). This was a burst on Coinbase alone, not a market-wide move. Public data can't show who traded. The analyst should review the 2403.26 trades and the earlier alerts in this cluster from 09:50 onward.",
+    "claims": [
+     {
+      "statement": "Coinbase printed 70 trades in the window",
+      "value": "70",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Notional was 156187.19",
+      "value": "156187.19514",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Price range was 4.33 bps",
+      "value": "4.327041094408548",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Buy share was 0.49",
+      "value": "0.4909362346113594",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Sweep started at 2403.08",
+      "value": "2403.08",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Sweep climbed to 2403.6",
+      "value": "2403.6",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Two-sided trades at exactly 2403.26",
+      "value": "2403.26",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Sell of 11.22126 ETH at 2403.26",
+      "value": "11.22126",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Sell of 11.10311569 ETH at 2403.26",
+      "value": "11.10311569",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "0.12220306 sold and then bought",
+      "value": "0.12220306",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "0.05404048 sold and then bought",
+      "value": "0.05404048",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Seller-initiated prints at 2404.01",
+      "value": "2404.01",
+      "tool_call_id": "toolu_012Mde5pi4jXKxjF2cYGCk9M"
+     },
+     {
+      "statement": "Kraken traded 0.77498601 ETH",
+      "value": "0.77498601",
+      "tool_call_id": "toolu_01B3CZVsChsrEpGnDe5Zfh7g"
+     },
+     {
+      "statement": "Kraken notional was 1862.61",
+      "value": "1862.607425",
+      "tool_call_id": "toolu_01B3CZVsChsrEpGnDe5Zfh7g"
+     },
+     {
+      "statement": "Largest spread was 2.63 bps",
+      "value": "2.6312072443268004",
+      "tool_call_id": "toolu_016L4PdVcR5d6mdpt7s9RVyR"
+     },
+     {
+      "statement": "Spread checked across 20 buckets",
+      "value": "20",
+      "tool_call_id": "toolu_016L4PdVcR5d6mdpt7s9RVyR"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News or a market-wide burst: doesn't fit. Kraken was nearly idle (0.77 ETH), and the spread between venues stayed within 2.63 bps.",
+     "A large passive order absorbing aggressive flow at 2403.26: possible in part, but aggressors hit that price from both sides, sizes repeat exactly in opposite directions, and prints at other prices conflict with it.",
+     "A genuine large buyer: explains the multi-level sweep at 09:55:48.203, but not the two-sided trades at 2403.26 that followed.",
+     "Lag on one venue during a fast move: doesn't fit. Price moved only a few bps and the spread stayed tight."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 26,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 16,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Its strength is that every figure checks against the tool results: the trades at exactly 2403.26 from both sides, sizes repeating in opposite directions, and Kraken being nearly idle with a tight gap between venues, with each benign explanation tested against the data. Its weakness is that it overstates the 2404.01 vs 2403.26 point as impossible from one normal book, when the prints came about 0.1 s apart and the book could have changed, but medium confidence keeps the call reasonable."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 6,
+    "output_tokens": 5263,
+    "cache_read_input_tokens": 10213,
+    "cache_creation_input_tokens": 29042,
+    "cost_usd": 0.252537
+   },
+   "latency_s": 56.2,
+   "tool_calls": [
+    {
+     "id": "toolu_012Mde5pi4jXKxjF2cYGCk9M",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:55:30Z",
+      "end": "2026-10-22T09:56:05Z",
+      "stream": "inj",
+      "limit": 300
+     }
+    },
+    {
+     "id": "toolu_016L4PdVcR5d6mdpt7s9RVyR",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:50:00Z",
+      "end": "2026-10-22T10:00:00Z",
+      "stream": "inj",
+      "bucket_seconds": 30
+     }
+    },
+    {
+     "id": "toolu_01B3CZVsChsrEpGnDe5Zfh7g",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:55:30Z",
+      "end": "2026-10-22T09:56:05Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:SOL-USD:1792663033000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "A single aggressive sell order swept the top three bid levels of a deep Kraken SOL-USD book, producing a large one-sided burst with little price impact, followed by a fast book refill.",
+    "narrative": "Between 09:57:05 and 09:57:40 Kraken SOL-USD printed 29 trades for 312.45 SOL (32509 notional), with a buy volume share of only 0.031, so the flow was almost entirely seller-initiated. Most of the volume came from 12 trades sharing the timestamp 09:57:22.595660. All had sell as the taker side and walked down the bid from 104.05 to 104.04 to 104.03, with the largest fills being 85.83 and 98.42 SOL. That is how one marketable order sweeping the book looks. It shows none of the matched, two-sided back-and-forth expected from wash-style inflation. The rebuilt book at 09:57:22 showed 117.2 SOL bid at 104.05 and 82.7 at 104.04, with 5686 SOL of total visible bid depth, which explains the small price impact. By 09:57:24 the bid had refilled to 123.1 at 104.05 and 138.8 at 104.04, consistent with routine re-quoting. Coinbase traded only 6.83 SOL in the 09:57:20 bucket against 303.45 on Kraken. The cross-venue spread peaked at 3.28 bps in that bucket and was back to 0.34 bps by 09:57:30, so this was a brief single-venue event rather than a news-driven move. Public data cannot identify who placed the order, and account-level wash checks are not possible with these tools.",
+    "claims": [
+     {
+      "statement": "29 trades in the window 09:57:05-09:57:40",
+      "value": "29",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "Volume of 312.45 SOL",
+      "value": "312.44987528",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "Notional of 32509",
+      "value": "32509.248764",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "Buy volume share of 0.031",
+      "value": "0.0314708997121159",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "Burst of sell-taker trades at 09:57:22.595660",
+      "value": "2026-10-22T09:57:22.595660Z",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "Fills walked from 104.05",
+      "value": "104.05",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "to 104.04",
+      "value": "104.04",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "to 104.03",
+      "value": "104.03",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "Large fill of 85.83 SOL",
+      "value": "85.83059267",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "Large fill of 98.42 SOL",
+      "value": "98.41636793",
+      "tool_call_id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR"
+     },
+     {
+      "statement": "Pre-burst best bid 104.05 had 117.2 SOL",
+      "value": "117.2171415",
+      "tool_call_id": "toolu_01UqhBEgcDJRQLE4sSg57Pb9"
+     },
+     {
+      "statement": "Pre-burst 104.04 level had 82.7 SOL",
+      "value": "82.66691206",
+      "tool_call_id": "toolu_01UqhBEgcDJRQLE4sSg57Pb9"
+     },
+     {
+      "statement": "Pre-burst visible bid depth of 5686 SOL",
+      "value": "5686.47880153",
+      "tool_call_id": "toolu_01UqhBEgcDJRQLE4sSg57Pb9"
+     },
+     {
+      "statement": "Post-burst bid at 104.05 refilled to 123.1",
+      "value": "123.12240366",
+      "tool_call_id": "toolu_011rAuA8vT5FudtHcxwEzbm3"
+     },
+     {
+      "statement": "Post-burst bid at 104.04 refilled to 138.8",
+      "value": "138.79820875",
+      "tool_call_id": "toolu_011rAuA8vT5FudtHcxwEzbm3"
+     },
+     {
+      "statement": "Coinbase volume of 6.83 SOL in the 09:57:20 bucket",
+      "value": "6.82880321",
+      "tool_call_id": "toolu_014vmCQQyUMB5dwDoEzaqMKC"
+     },
+     {
+      "statement": "Kraken volume of 303.45 SOL in the 09:57:20 bucket",
+      "value": "303.45092152",
+      "tool_call_id": "toolu_014vmCQQyUMB5dwDoEzaqMKC"
+     },
+     {
+      "statement": "Cross-venue spread peaked at 3.28 bps",
+      "value": "3.2805656964512298",
+      "tool_call_id": "toolu_014vmCQQyUMB5dwDoEzaqMKC"
+     },
+     {
+      "statement": "Spread back to 0.34 bps by 09:57:30",
+      "value": "0.34082248055472986",
+      "tool_call_id": "toolu_014vmCQQyUMB5dwDoEzaqMKC"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large aggressive order absorbed by deep resting liquidity: fits. All 12 trades at 09:57:22.595660 had sell as the taker side and walked down the bid levels in order. The book had over 5,600 SOL of visible bid depth and refilled within about 2 seconds.",
+     "News-driven or cross-market burst: does not fit. Coinbase volume stayed small in the same bucket and the cross-venue spread returned to normal within 10 seconds, so the event was confined to Kraken.",
+     "Wash-style volume inflation: not supported by the public data. The flow was one-sided (buy share 0.031) and there were no matched back-and-forth trades of the same size. Account-level overlap cannot be checked with these tools.",
+     "Market-maker re-quoting: consistent with how quickly the bid levels refilled at 104.05 and 104.04 after the sweep."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 30,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 19,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "The case file is well sourced: the 104.05 fills (about 117.2 SOL) match the visible bid exactly, and its one-sided sell sweep, cross-venue check and refill evidence support likely_benign at medium confidence. However, it ignores the detector history showing similar Kraken bursts every few minutes, and it does not mention that the fills at 104.04 (about 181 SOL) exceeded the 82.7 SOL visible there."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5004,
+    "cache_read_input_tokens": 27422,
+    "cache_creation_input_tokens": 35283,
+    "cost_usd": 0.282011
+   },
+   "latency_s": 58.42,
+   "tool_calls": [
+    {
+     "id": "toolu_01ULFFUGhNFGkS8dwAFW3MHR",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:57:05Z",
+      "end": "2026-10-22T09:57:40Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_01BuW7U88YZQE3rLY1bDq88z",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:52:00Z",
+      "end": "2026-10-22T10:02:00Z",
+      "stream": "inj",
+      "limit": 50
+     }
+    },
+    {
+     "id": "toolu_014vmCQQyUMB5dwDoEzaqMKC",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:55:00Z",
+      "end": "2026-10-22T10:00:00Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_01UqhBEgcDJRQLE4sSg57Pb9",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "SOL-USD",
+      "at": "2026-10-22T09:57:22Z",
+      "stream": "inj"
+     }
+    },
+    {
+     "id": "toolu_011rAuA8vT5FudtHcxwEzbm3",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "SOL-USD",
+      "at": "2026-10-22T09:57:24Z",
+      "stream": "inj"
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:ETH-USD:1792661756000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "The Kraken ETH-USD volume burst looks like volume inflation: repeated identical trade sizes with both buyers and sellers as the aggressor at one price (2400.09), with no matching activity on Coinbase.",
+    "narrative": "Kraken ETH-USD trades from 09:35:50 to 09:36:15 came to 33 trades and 48889.38 notional, which matches the alert, and the price range was only 2.92 bps. Almost every trade printed at 2400.09. Exact 8-decimal sizes repeat within seconds with both buyers and sellers as the aggressor: 0.00296661 appears many times, and 4.01238753 appears twice as an aggressive buy. Buyers were the aggressor for 0.739 of the volume, mostly at 2400.09. In the 09:35:58 book, 2400.09 was the best bid, which held a 52.36 ETH order, and the best ask was 2400.1. That order would explain sellers hitting the bid, but it doesn't explain buyers trading at that price. In the 09:36:00 bucket, Kraken traded 16.15 ETH against 1.09 ETH on Coinbase, and the gap between the venues was a normal 1.08 bps, so no move across venues supports a news-driven burst. By 09:36:09 the large bid was gone and the book had moved up to 2400.78/2400.79. For comparison, the earlier Kraken alert at 09:33 was six aggressive buys at a single timestamp, which looks like an ordinary buy order filled across several resting sell orders. Public data cannot identify accounts, so a wash_trade check on the evaluation stream is the recommended next step.",
+    "claims": [
+     {
+      "statement": "33 trades in the window",
+      "value": "33",
+      "tool_call_id": "toolu_018jJF6F4DxXSjGeVETCeU2P"
+     },
+     {
+      "statement": "Notional 48889.38",
+      "value": "48889.381777",
+      "tool_call_id": "toolu_018jJF6F4DxXSjGeVETCeU2P"
+     },
+     {
+      "statement": "Price range 2.92 bps",
+      "value": "2.9161320424588824",
+      "tool_call_id": "toolu_018jJF6F4DxXSjGeVETCeU2P"
+     },
+     {
+      "statement": "Most trades printed at 2400.09",
+      "value": "2400.09",
+      "tool_call_id": "toolu_018jJF6F4DxXSjGeVETCeU2P"
+     },
+     {
+      "statement": "Repeated size 0.00296661",
+      "value": "0.00296661",
+      "tool_call_id": "toolu_018jJF6F4DxXSjGeVETCeU2P"
+     },
+     {
+      "statement": "Repeated aggressive-buy size 4.01238753",
+      "value": "4.01238753",
+      "tool_call_id": "toolu_018jJF6F4DxXSjGeVETCeU2P"
+     },
+     {
+      "statement": "Buyers were the aggressor for 0.739 of the volume",
+      "value": "0.7386663804128621",
+      "tool_call_id": "toolu_018jJF6F4DxXSjGeVETCeU2P"
+     },
+     {
+      "statement": "Bid of 52.36 ETH at 2400.09",
+      "value": "52.35712064",
+      "tool_call_id": "toolu_01BdjhFhrc4SqdBbMYFmJGHy"
+     },
+     {
+      "statement": "Best ask 2400.1 at 09:35:58",
+      "value": "2400.1",
+      "tool_call_id": "toolu_01BdjhFhrc4SqdBbMYFmJGHy"
+     },
+     {
+      "statement": "Kraken volume 16.15 ETH in 09:36:00 bucket",
+      "value": "16.14589132",
+      "tool_call_id": "toolu_01SDbfwq6iqvMAJc2YciR4rs"
+     },
+     {
+      "statement": "Coinbase volume 1.09 ETH in same bucket",
+      "value": "1.08572863",
+      "tool_call_id": "toolu_01SDbfwq6iqvMAJc2YciR4rs"
+     },
+     {
+      "statement": "Gap between venues 1.08 bps",
+      "value": "1.0764098162704114",
+      "tool_call_id": "toolu_01SDbfwq6iqvMAJc2YciR4rs"
+     },
+     {
+      "statement": "Best bid 2400.78 at 09:36:09",
+      "value": "2400.78",
+      "tool_call_id": "toolu_01GDfPoeHDpvp84po4ZmiJ8h"
+     },
+     {
+      "statement": "Best ask 2400.79 at 09:36:09",
+      "value": "2400.79",
+      "tool_call_id": "toolu_01GDfPoeHDpvp84po4ZmiJ8h"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large resting order filling against aggressive flow (passive absorption): partly supported by the 52.36 ETH bid at 2400.09. But buyers were the aggressor for most of the volume at that price, and the same exact sizes repeat on both sides, which absorption doesn't explain.",
+     "News-driven or cross-venue burst: ruled out. Coinbase volume was small in the same bucket and the gap between the venues stayed normal.",
+     "Ordinary single buy order filled across several resting sell orders (sweep), like the 09:33 alert: that episode was six aggressive buys at one timestamp. This one spreads over about 9 seconds with repeating sizes on alternating sides, so it doesn't fit."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 23,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 14,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "The case rests on accurate trade, book and cross-venue data. It points out that aggressive buys printed at the best bid, that exact sizes repeat on both sides, and how this burst differs from the 09:33 single-order fill. Its main limit is that it can't tell who traded on each side, which is why it rightly stops at medium confidence, and it doesn't mention the roughly 20 bps gap between venues that came just before the burst."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 4938,
+    "cache_read_input_tokens": 23935,
+    "cache_creation_input_tokens": 29415,
+    "cost_usd": 0.250654
+   },
+   "latency_s": 56.58,
+   "tool_calls": [
+    {
+     "id": "toolu_018jJF6F4DxXSjGeVETCeU2P",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:35:50Z",
+      "end": "2026-10-22T09:36:15Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01SDbfwq6iqvMAJc2YciR4rs",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:33:00Z",
+      "end": "2026-10-22T09:39:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01BdjhFhrc4SqdBbMYFmJGHy",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "ETH-USD",
+      "at": "2026-10-22T09:35:58Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    },
+    {
+     "id": "toolu_01GDfPoeHDpvp84po4ZmiJ8h",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "ETH-USD",
+      "at": "2026-10-22T09:36:09Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    },
+    {
+     "id": "toolu_01Bop7Qu8pM9BADexAvjGBES",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:33:25Z",
+      "end": "2026-10-22T09:33:45Z",
+      "stream": "inj",
+      "limit": 50
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:ETH-USD:1792661792000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "low",
+    "hypothesis": "A single aggressive buy order walked several ask levels on Kraken ETH-USD at 09:36:41.458 and was absorbed by deep resting liquidity, giving high notional with small price impact.",
+    "narrative": "Kraken ETH-USD trades from 09:36:25 to 09:36:55 show 36 trades, 48.31 ETH and 115,977 notional, with buy volume share 0.999. Most of the volume sits in fills stamped 09:36:41.458444, all buy-taker, at rising prices from 2400.75 to 2400.88. The largest fill was 18.97 ETH. That matches one market order sweeping the ask, not trades going back and forth. The book just before the sweep had best ask 2400.75 and 106.5 ETH of ask depth, which explains the small impact; by 09:36:43 the best bid had reset to 2400.54. Coinbase traded only 0.82 ETH in the 09:36:40 bucket against 42.47 ETH on Kraken, and the cross-venue VWAP spread was -0.81 bps. So this was a Kraken-only event, not news-driven activity on both venues. Some details don't fit the simple picture. A fill of 8.33192678 ETH at 2400.75 was larger than the 7.477 ETH visible there, and that exact size reappeared as a bid at 2400.36 at 09:36:43. The size 19.99662428 rested on both the bid and the ask. Re-quoting could explain these. Public data cannot identify participants, so the analyst should check the evaluation-stream labels and synthetic account IDs for the 09:36:41.458 fills.",
+    "claims": [
+     {
+      "statement": "36 Kraken trades from 09:36:25 to 09:36:55",
+      "value": "36",
+      "tool_call_id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu"
+     },
+     {
+      "statement": "Volume 48.31 ETH in that window",
+      "value": "48.3083711",
+      "tool_call_id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu"
+     },
+     {
+      "statement": "Notional 115,977 in that window",
+      "value": "115977.123039",
+      "tool_call_id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu"
+     },
+     {
+      "statement": "Buy volume share 0.999",
+      "value": "0.9990563916985394",
+      "tool_call_id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu"
+     },
+     {
+      "statement": "Sweep fills start at 2400.75",
+      "value": "2400.75",
+      "tool_call_id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu"
+     },
+     {
+      "statement": "Sweep fills reach 2400.88",
+      "value": "2400.88",
+      "tool_call_id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu"
+     },
+     {
+      "statement": "Largest fill 18.97 ETH",
+      "value": "18.96759578",
+      "tool_call_id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu"
+     },
+     {
+      "statement": "Fill of 8.33192678 ETH at 2400.75",
+      "value": "8.33192678",
+      "tool_call_id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu"
+     },
+     {
+      "statement": "Ask depth 106.5 ETH before the sweep",
+      "value": "106.51394008",
+      "tool_call_id": "toolu_013zJ6krZ1p6VwxvwxjunKLA"
+     },
+     {
+      "statement": "7.477 ETH visible at 2400.75 before the sweep",
+      "value": "7.47737143",
+      "tool_call_id": "toolu_013zJ6krZ1p6VwxvwxjunKLA"
+     },
+     {
+      "statement": "Best bid 2400.54 at 09:36:43",
+      "value": "2400.54",
+      "tool_call_id": "toolu_01Fkovt8QQRxe5Szb5QfEPRz"
+     },
+     {
+      "statement": "8.33192678 bid at 2400.36 at 09:36:43",
+      "value": "2400.36",
+      "tool_call_id": "toolu_01Fkovt8QQRxe5Szb5QfEPRz"
+     },
+     {
+      "statement": "19.99662428 on both the bid and the ask at 09:36:43",
+      "value": "19.99662428",
+      "tool_call_id": "toolu_01Fkovt8QQRxe5Szb5QfEPRz"
+     },
+     {
+      "statement": "Coinbase volume 0.82 ETH in the 09:36:40 bucket",
+      "value": "0.82177606",
+      "tool_call_id": "toolu_018cnVMbqVgQ8SBKGG3YWT74"
+     },
+     {
+      "statement": "Kraken volume 42.47 ETH in the 09:36:40 bucket",
+      "value": "42.47003374",
+      "tool_call_id": "toolu_018cnVMbqVgQ8SBKGG3YWT74"
+     },
+     {
+      "statement": "Cross-venue spread -0.81 bps",
+      "value": "-0.8132453401045032",
+      "tool_call_id": "toolu_018cnVMbqVgQ8SBKGG3YWT74"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News-driven burst on both venues: does not fit. Coinbase volume was flat (0.82 ETH) in the bucket where Kraken traded 42.47 ETH, and the cross-venue spread stayed near zero.",
+     "A large aggressive order absorbed by deep resting liquidity: fits. All fills in the 09:36:41.458 batch were buy-taker at rising prices, ask depth was about 106.5 ETH, and the book reset within about 2 seconds.",
+     "Market-maker re-quoting: could explain the repeated exact sizes (8.33192678, 19.99662428) in the book after the sweep and the liquidity that refreshed between the snapshot and the fills, but public data cannot confirm this."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 25,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 16,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Strength: every figure traces to the tool results, the cross-venue and before/after book comparisons rule out a two-venue news burst with data, and the oddities (8.33192678 filled beyond visible size, 19.99662428 resting on both sides) are flagged and passed to the analyst. Weakness: it understates the mismatch (about 20.8 ETH filled at 2400.75 against 7.477 visible) and ignores that the score is about twice the detector's p95, so 'likely_benign' is defensible only because confidence is low."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5584,
+    "cache_read_input_tokens": 28220,
+    "cache_creation_input_tokens": 36848,
+    "cost_usd": 0.301596
+   },
+   "latency_s": 66.89,
+   "tool_calls": [
+    {
+     "id": "toolu_01GdwcvgLFPumFX1yEo8E6Gu",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:36:25Z",
+      "end": "2026-10-22T09:36:55Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_018cnVMbqVgQ8SBKGG3YWT74",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:32:00Z",
+      "end": "2026-10-22T09:40:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01Kvgd8JwkpZb4EcvcVfkXKD",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:30:00Z",
+      "end": "2026-10-22T09:42:00Z",
+      "stream": "inj",
+      "limit": 20
+     }
+    },
+    {
+     "id": "toolu_013zJ6krZ1p6VwxvwxjunKLA",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "ETH-USD",
+      "at": "2026-10-22T09:36:41Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    },
+    {
+     "id": "toolu_01Fkovt8QQRxe5Szb5QfEPRz",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "ETH-USD",
+      "at": "2026-10-22T09:36:43Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:ETH-USD:1792663108000",
+   "source": "injected",
+   "label": "escalate",
+   "verdict": {
+    "classification": "escalate",
+    "confidence": "medium",
+    "hypothesis": "The Kraken ETH-USD burst was mostly large prints repeated at one fixed price (2404.16), some of them above the visible best ask, with no matching activity on Coinbase. This fits volume inflation better than real liquidity-taking.",
+    "narrative": "Kraken ETH-USD printed 33 trades between 09:58:20 and 09:58:50Z: 48.17 ETH and 115,816 notional, with a price range of only 2.41 bps. Nearly all of the volume was a few large trades at exactly 2404.16, including buys of 10.94, 7.69 and 6.66 ETH and a 12.36 ETH sell. Between them, small trades of about 0.002 ETH printed at other prices. At 09:58:37 the book's best bid was 2404.16 with 12.17 ETH, so the large sell is consistent with the book. By 09:58:42 the market had moved down: best bid 2403.88, best ask 2403.89 with 1.08 ETH. Even so, buys of 7.69 and 6.66 ETH then printed at 2404.16, above the visible asks, while small sells printed at 2403.88 and 2403.59. Cross-venue buckets show Kraken trading 32.95 ETH at 09:58:30 against Coinbase's 0.28. The price spread between the venues stayed small, peaking at 1.74 bps, so neither news nor one venue lagging the other explains the burst. Over 09:50 to 10:05, Kraken traded 319,634 notional in total, and this 30-second window accounts for a large share of it. Public data cannot identify who placed these orders. Suggested next steps: check wash_trade alerts on the evaluation stream around this window, and take more book snapshots between 09:58:37 and 09:58:44.",
+    "claims": [
+     {
+      "statement": "33 trades on Kraken in 09:58:20-09:58:50",
+      "value": "33",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "48.17 ETH volume",
+      "value": "48.1733257",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "115,816 notional",
+      "value": "115816.296666",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "price range 2.41 bps",
+      "value": "2.412766028254322",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "large prints at 2404.16",
+      "value": "2404.16",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "buy of 10.94 ETH",
+      "value": "10.93743911",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "buy of 7.69 ETH",
+      "value": "7.68734114",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "buy of 6.66 ETH",
+      "value": "6.66185019",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "12.36 ETH sell",
+      "value": "12.36179881",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "small trades of 0.002 ETH",
+      "value": "0.002",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "small sell at 2403.59",
+      "value": "2403.59",
+      "tool_call_id": "toolu_019UKVWBCoR5amuUpWozdXAN"
+     },
+     {
+      "statement": "best bid 12.17 ETH at 09:58:37",
+      "value": "12.16785242",
+      "tool_call_id": "toolu_01XcnzF2PRp7wDpvpx2VVJJw"
+     },
+     {
+      "statement": "best bid 2403.88 at 09:58:42",
+      "value": "2403.88",
+      "tool_call_id": "toolu_01Veh3i1UmMBVn163FNhDMc7"
+     },
+     {
+      "statement": "best ask 2403.89 at 09:58:42",
+      "value": "2403.89",
+      "tool_call_id": "toolu_01Veh3i1UmMBVn163FNhDMc7"
+     },
+     {
+      "statement": "best ask qty 1.08 ETH",
+      "value": "1.08465696",
+      "tool_call_id": "toolu_01Veh3i1UmMBVn163FNhDMc7"
+     },
+     {
+      "statement": "Kraken 32.95 ETH in 09:58:30 bucket",
+      "value": "32.95199667",
+      "tool_call_id": "toolu_01V8HxpivBvd3wGhAkDUhpvU"
+     },
+     {
+      "statement": "Coinbase 0.28 ETH in 09:58:30 bucket",
+      "value": "0.28167919",
+      "tool_call_id": "toolu_01V8HxpivBvd3wGhAkDUhpvU"
+     },
+     {
+      "statement": "max cross-venue spread 1.74 bps",
+      "value": "1.743659033539295",
+      "tool_call_id": "toolu_01V8HxpivBvd3wGhAkDUhpvU"
+     },
+     {
+      "statement": "Kraken 09:50-10:05 notional 319,634",
+      "value": "319634.309208",
+      "tool_call_id": "toolu_01An1y8VVMujjLwyNLVvzSvV"
+     }
+    ],
+    "benign_explanations_considered": [
+     "News-driven or market-wide burst: ruled out. Coinbase traded 0.28 ETH against Kraken's 32.95 ETH in the same 10 s bucket, the cross-venue spread peaked at only 1.74 bps, and neither venue's price moved.",
+     "Large passive order absorbing aggressive buyers: partly plausible for the early prints at 2404.16. It cannot explain the 7.69 and 6.66 ETH buys at 2404.16 after the visible best ask had dropped to 2403.89, and the snapshots show no large resting ask at 2404.16.",
+     "Market maker hitting the touch: the 12.36 ETH sell matches the 12.17 ETH bid at 2404.16, so that one print is consistent with the book. The repeated same-price buys that came after it are not."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 34,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 19,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Strength: the case file uses the alert-window trades, two book snapshots and the Coinbase buckets to show large buys printing at 2404.16 after the visible best ask had dropped to 2403.89, and it escalates at a fitting medium confidence. Weakness: it says there was 'no matching activity on Coinbase', but Coinbase traded 10.15 ETH in the 09:58:40 bucket and had its own 145k-178k notional spikes minutes earlier, and the file ignores that history and the base rate of 154 alerts in 24 hours."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5201,
+    "cache_read_input_tokens": 27159,
+    "cache_creation_input_tokens": 33690,
+    "cost_usd": 0.277934
+   },
+   "latency_s": 57.27,
+   "tool_calls": [
+    {
+     "id": "toolu_019UKVWBCoR5amuUpWozdXAN",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:58:20Z",
+      "end": "2026-10-22T09:58:50Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01An1y8VVMujjLwyNLVvzSvV",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:50:00Z",
+      "end": "2026-10-22T10:05:00Z",
+      "stream": "inj",
+      "limit": 50
+     }
+    },
+    {
+     "id": "toolu_01V8HxpivBvd3wGhAkDUhpvU",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:56:00Z",
+      "end": "2026-10-22T10:01:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01XcnzF2PRp7wDpvpx2VVJJw",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "ETH-USD",
+      "at": "2026-10-22T09:58:37Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    },
+    {
+     "id": "toolu_01Veh3i1UmMBVn163FNhDMc7",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "ETH-USD",
+      "at": "2026-10-22T09:58:42Z",
+      "stream": "inj",
+      "depth": 5
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:ETH-USD:1792660147000",
+   "source": "real_unlabelled",
+   "label": "",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "A single aggressive sell order swept several stacked Kraken bid levels near 2400 while Coinbase saw selling at the same time, so the spike looks like real one-sided flow rather than wash-style volume inflation.",
+    "narrative": "From 09:09:00 to 09:09:35, Kraken ETH-USD printed 72 trades worth about 101,413 notional. Buy share was only 0.025, so nearly all of the flow was sellers hitting bids. Most of it came in one sweep at 09:09:16.954578 that filled at the same or lower prices from 2400.07 down to 2399.45. Across the wider query the price range was about 10.3 bps. A book snapshot at 09:09:16.900 shows bids stacked around the touch: 0.5 at 2400.07 and 9.8996093 at 2400. Several fill sizes match resting bids exactly, for example 2.08338358 at 2399.94 and 0.85157809 at 2399.58, so the sell order consumed real resting liquidity rather than trading back and forth. Over the same window Coinbase printed 58 trades worth about 152,313 notional, with buy share 0.153 and the price falling from 2401.03 to 2399.4. In the 09:09:10 bucket the gap between the two venues' average prices was only 0.85 bps, so both fell together. About three minutes later a much larger sell-off hit both venues (277.85 ETH on Coinbase and 146.87 ETH on Kraken in the 09:12:20 bucket), which points to market-wide selling. Public data cannot identify who placed the orders. Because this is the injected evaluation stream, the result should be checked against its labels.",
+    "claims": [
+     {
+      "statement": "Kraken printed 72 trades from 09:09:00 to 09:09:35",
+      "value": "72",
+      "tool_call_id": "toolu_017r2y7NPTcqX9fL3vTvybmv"
+     },
+     {
+      "statement": "Kraken notional was about 101,413",
+      "value": "101412.951499",
+      "tool_call_id": "toolu_017r2y7NPTcqX9fL3vTvybmv"
+     },
+     {
+      "statement": "Kraken buy share was 0.025",
+      "value": "0.02473056382884188",
+      "tool_call_id": "toolu_017r2y7NPTcqX9fL3vTvybmv"
+     },
+     {
+      "statement": "The sweep happened at 09:09:16.954578",
+      "value": "2026-10-22T09:09:16.954578Z",
+      "tool_call_id": "toolu_017r2y7NPTcqX9fL3vTvybmv"
+     },
+     {
+      "statement": "The sweep started at 2400.07",
+      "value": "2400.07",
+      "tool_call_id": "toolu_017r2y7NPTcqX9fL3vTvybmv"
+     },
+     {
+      "statement": "The sweep reached down to 2399.45",
+      "value": "2399.45",
+      "tool_call_id": "toolu_017r2y7NPTcqX9fL3vTvybmv"
+     },
+     {
+      "statement": "The price range in the wider query was about 10.3 bps",
+      "value": "10.288730091619684",
+      "tool_call_id": "toolu_017r2y7NPTcqX9fL3vTvybmv"
+     },
+     {
+      "statement": "The book had 0.5 bid at 2400.07",
+      "value": "0.5",
+      "tool_call_id": "toolu_01M85iJRHnQ1yLG3dJjj6n5w"
+     },
+     {
+      "statement": "The book had 9.8996093 bid at 2400",
+      "value": "9.8996093",
+      "tool_call_id": "toolu_01M85iJRHnQ1yLG3dJjj6n5w"
+     },
+     {
+      "statement": "Resting bid of 2.08338358 at 2399.94 matched a fill",
+      "value": "2.08338358",
+      "tool_call_id": "toolu_01M85iJRHnQ1yLG3dJjj6n5w"
+     },
+     {
+      "statement": "Resting bid of 0.85157809 at 2399.58 matched a fill",
+      "value": "0.85157809",
+      "tool_call_id": "toolu_01M85iJRHnQ1yLG3dJjj6n5w"
+     },
+     {
+      "statement": "Coinbase printed 58 trades over the alert window",
+      "value": "58",
+      "tool_call_id": "toolu_01Cw3dxsoZVnymWbRZtBMFF6"
+     },
+     {
+      "statement": "Coinbase notional was about 152,313",
+      "value": "152313.149324",
+      "tool_call_id": "toolu_01Cw3dxsoZVnymWbRZtBMFF6"
+     },
+     {
+      "statement": "Coinbase buy share was 0.153",
+      "value": "0.15314184475775644",
+      "tool_call_id": "toolu_01Cw3dxsoZVnymWbRZtBMFF6"
+     },
+     {
+      "statement": "The Coinbase price opened at 2401.03",
+      "value": "2401.03",
+      "tool_call_id": "toolu_01Cw3dxsoZVnymWbRZtBMFF6"
+     },
+     {
+      "statement": "The Coinbase price fell to 2399.4",
+      "value": "2399.4",
+      "tool_call_id": "toolu_01Cw3dxsoZVnymWbRZtBMFF6"
+     },
+     {
+      "statement": "The cross-venue gap in the 09:09:10 bucket was 0.85 bps",
+      "value": "0.8513642208641308",
+      "tool_call_id": "toolu_01Vdg7eraQ7PeDki9wbbGuiV"
+     },
+     {
+      "statement": "Coinbase volume in the 09:12:20 bucket was 277.85 ETH",
+      "value": "277.84897211",
+      "tool_call_id": "toolu_01Vdg7eraQ7PeDki9wbbGuiV"
+     },
+     {
+      "statement": "Kraken volume in the 09:12:20 bucket was 146.87 ETH",
+      "value": "146.87061308",
+      "tool_call_id": "toolu_01Vdg7eraQ7PeDki9wbbGuiV"
+     }
+    ],
+    "benign_explanations_considered": [
+     "An aggressive seller sweeping stacked bids: this fits. The fills only stay level or move down through the bid levels, buy share is 0.025, and the fill sizes match resting bids in the book snapshot.",
+     "Market-wide selling across venues: this fits. Coinbase was also seller-dominated and falling over the same window, the cross-venue gap stayed small, and a larger two-venue sell-off followed at 09:12:20.",
+     "Wash-style volume inflation, the pattern the detector looks for: not supported. There is no back-and-forth trading at the same price; the flow is one-sided aggression that consumed real depth."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 28,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 19,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": false,
+    "clarity": true,
+    "overall_pass": false,
+    "reason": "Main strength: the claims check out against the tool results, including the sweep that matches the bid book level by level and the cross-venue comparison. Main weakness: medium confidence in a benign call ignores the 6.85703084 fill that exactly matches a resting ask, the much larger spike on Kraken than on Coinbase, and the earlier 09:06 Kraken alert, so the confidence is not justified."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5257,
+    "cache_read_input_tokens": 29099,
+    "cache_creation_input_tokens": 38885,
+    "cost_usd": 0.305417
+   },
+   "latency_s": 58.36,
+   "tool_calls": [
+    {
+     "id": "toolu_017r2y7NPTcqX9fL3vTvybmv",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:09:00Z",
+      "end": "2026-10-22T09:09:35Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01Vdg7eraQ7PeDki9wbbGuiV",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:05:00Z",
+      "end": "2026-10-22T09:13:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01M85iJRHnQ1yLG3dJjj6n5w",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "ETH-USD",
+      "at": "2026-10-22T09:09:16.9Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    },
+    {
+     "id": "toolu_01Cw3dxsoZVnymWbRZtBMFF6",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T09:09:07Z",
+      "end": "2026-10-22T09:09:25Z",
+      "stream": "inj",
+      "limit": 5
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:BTC-USD:1792660527000",
+   "source": "real_unlabelled",
+   "label": "",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "A single sell order of about 2 BTC hit a resting Kraken bid of about 2 BTC at 81769.4, which produced a big notional print with almost no price impact, rather than inflated volume.",
+    "narrative": "From 09:15:27 to 09:15:37, Kraken BTC-USD printed 10 trades worth 174100.688243 notional, with a price range of 0.709 bps. One sell-side taker trade of 1.99990817 BTC at 81769.4 made up nearly all of it. Buyers took only about 5.9% of window volume, and no matching buy and sell trades of the same size appear. The Kraken book just before the print had a best bid of 2.00349033 BTC at 81769.4, with only small levels behind it. The same-millisecond sells swept those levels down to 81763.7, so a resting bid absorbing an aggressive sell explains the small price move. The prior alert window had the opposite pattern: a buy sweep from 81771.8 to 81799, with about 99.7% of volume buyer-initiated, over 3.34 bps. That makes two separate one-sided orders, not back-and-forth trading. Coinbase traded only 0.12285093 BTC in the 09:15:30 bucket, and the gap between venues was a normal -1.24 bps, so this was not a burst across venues. Over the wider 09:10\u201309:20 window, Kraken had 1540 trades and a 35.74 bps range, which points to an active market. Caveat: this is on the evaluation stream, and public data cannot rule out the same participant on both sides of the 1.9999 BTC fill. The bid and sell being almost the same size is worth checking against account-level labels.",
+    "claims": [
+     {
+      "statement": "10 trades in the alert window",
+      "value": "10",
+      "tool_call_id": "toolu_01StcSkY7oWDhAf31TZYNPeC"
+     },
+     {
+      "statement": "Window notional 174100.688243",
+      "value": "174100.688243",
+      "tool_call_id": "toolu_01StcSkY7oWDhAf31TZYNPeC"
+     },
+     {
+      "statement": "Price range 0.709 bps",
+      "value": "0.7093360858834781",
+      "tool_call_id": "toolu_01StcSkY7oWDhAf31TZYNPeC"
+     },
+     {
+      "statement": "Sell-side taker trade of 1.99990817 BTC",
+      "value": "1.99990817",
+      "tool_call_id": "toolu_01StcSkY7oWDhAf31TZYNPeC"
+     },
+     {
+      "statement": "Large print price 81769.4",
+      "value": "81769.4",
+      "tool_call_id": "toolu_01StcSkY7oWDhAf31TZYNPeC"
+     },
+     {
+      "statement": "Sweep down to 81763.7",
+      "value": "81763.7",
+      "tool_call_id": "toolu_01StcSkY7oWDhAf31TZYNPeC"
+     },
+     {
+      "statement": "Buyer share about 5.9%",
+      "value": "0.0588505985501501",
+      "tool_call_id": "toolu_01StcSkY7oWDhAf31TZYNPeC"
+     },
+     {
+      "statement": "Best bid 2.00349033 BTC",
+      "value": "2.00349033",
+      "tool_call_id": "toolu_01HYHNkrukREUbTHwYbfajsA"
+     },
+     {
+      "statement": "Best bid price 81769.4",
+      "value": "81769.4",
+      "tool_call_id": "toolu_01HYHNkrukREUbTHwYbfajsA"
+     },
+     {
+      "statement": "Prior buy sweep started at 81771.8",
+      "value": "81771.8",
+      "tool_call_id": "toolu_01T5odMkbtxdmBLjUPVi4XrS"
+     },
+     {
+      "statement": "Prior buy sweep reached 81799",
+      "value": "81799",
+      "tool_call_id": "toolu_01T5odMkbtxdmBLjUPVi4XrS"
+     },
+     {
+      "statement": "Prior window about 99.7% buyer-initiated",
+      "value": "0.9968209239635039",
+      "tool_call_id": "toolu_01T5odMkbtxdmBLjUPVi4XrS"
+     },
+     {
+      "statement": "Prior window range 3.34 bps",
+      "value": "3.3380061343504672",
+      "tool_call_id": "toolu_01T5odMkbtxdmBLjUPVi4XrS"
+     },
+     {
+      "statement": "Coinbase volume 0.12285093 in 09:15:30 bucket",
+      "value": "0.12285093",
+      "tool_call_id": "toolu_01JfCaRWuwbuvQ6NNdaeFAqt"
+     },
+     {
+      "statement": "Spread between venues -1.24 bps",
+      "value": "-1.2436696306351223",
+      "tool_call_id": "toolu_01JfCaRWuwbuvQ6NNdaeFAqt"
+     },
+     {
+      "statement": "1540 Kraken trades in 09:10\u201309:20",
+      "value": "1540",
+      "tool_call_id": "toolu_01JoNSfYqXfTFgoePt7cDMTA"
+     },
+     {
+      "statement": "35.74 bps range in 09:10\u201309:20",
+      "value": "35.744626676753505",
+      "tool_call_id": "toolu_01JoNSfYqXfTFgoePt7cDMTA"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large passive bid absorbing an aggressive sell: fits best. A 2.00349033 BTC best bid at 81769.4 matched the 1.99990817 BTC sell, and only tiny levels behind it were swept.",
+     "News-driven burst across venues: does not fit. Coinbase volume stayed low and the spread between venues was normal in the alert bucket.",
+     "Wash-style volume inflation: not supported by public data. Flow was one-sided with no repeated same-size buy and sell trades, but identity cannot be checked from public feeds."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 23,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 17,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "The case file checks every number against the tool results. It ties the 1.9999 BTC sell to the 2.0035 BTC resting bid in the book and compares it with the earlier buy sweep, the Coinbase bucket and the wider 10-minute window. The main weakness is that the bid and the sell are almost the same size, which is suspicious on the injected stream. The investigator rightly flags this and keeps confidence at medium, but the likely_benign label still depends on public data that cannot rule out one party on both sides."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 4817,
+    "cache_read_input_tokens": 25990,
+    "cache_creation_input_tokens": 39162,
+    "cost_usd": 0.29738
+   },
+   "latency_s": 63.12,
+   "tool_calls": [
+    {
+     "id": "toolu_01StcSkY7oWDhAf31TZYNPeC",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:15:27Z",
+      "end": "2026-10-22T09:15:37Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    },
+    {
+     "id": "toolu_01JoNSfYqXfTFgoePt7cDMTA",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:10:00Z",
+      "end": "2026-10-22T09:20:00Z",
+      "stream": "inj",
+      "limit": 50
+     }
+    },
+    {
+     "id": "toolu_01JfCaRWuwbuvQ6NNdaeFAqt",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:13:00Z",
+      "end": "2026-10-22T09:18:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01HYHNkrukREUbTHwYbfajsA",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T09:15:36Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    },
+    {
+     "id": "toolu_01T5odMkbtxdmBLjUPVi4XrS",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:14:55Z",
+      "end": "2026-10-22T09:15:10Z",
+      "stream": "inj",
+      "limit": 60
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:ETH-USD:1792658059000",
+   "source": "real_unlabelled",
+   "label": "",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "A burst of buying during a selloff seen on both venues filled against a large resting Kraken ask at 2406.52, so the heavy volume barely moved the price.",
+    "narrative": "Between 08:34:15 and 08:34:40, Kraken ETH-USD printed 308 trades for about 165,226 notional over a 5.6 bps price range, with a buy-volume share of 0.816. Most of it landed at 08:34:28 at a single price, 2406.52, including one 11.76133817 ETH fill and many 0.002 ETH fills. The Kraken book at 08:34:28.600 showed 52.41 ETH resting on the best ask at 2406.52, with only 1.98 ETH at the next level (2406.6) and a 0.04 bps bid-ask spread. That fits a large passive order absorbing aggressive buying, which explains the small price impact. Coinbase was just as active over 08:34:19\u201308:34:34: 99 trades and about 162,890 notional over a wider 8.48 bps range, mostly sell-initiated (buy share 0.175). Cross-venue prices stayed aligned, with a 0.15 bps spread in the 08:34:20 bucket and a maximum absolute spread of 5.10 bps over 08:31\u201308:38. Volume bursts also appear on both venues before and after this window, which points to a market-wide move rather than flow confined to Kraken. Open item: the same level traded sell-initiated and then buy-initiated within about 400 ms, with many identical 0.002 ETH fills. Public data cannot show who traded, so a wash_trade check on this evaluation stream is the right follow-up.",
+    "claims": [
+     {
+      "statement": "Kraken printed 308 trades in 08:34:15\u201308:34:40",
+      "value": "308",
+      "tool_call_id": "toolu_01VPApRFRSygtWNv5nMiUNMX"
+     },
+     {
+      "statement": "Kraken notional about 165,226",
+      "value": "165225.981662",
+      "tool_call_id": "toolu_01VPApRFRSygtWNv5nMiUNMX"
+     },
+     {
+      "statement": "Kraken price range 5.6 bps",
+      "value": "5.608187122356103",
+      "tool_call_id": "toolu_01VPApRFRSygtWNv5nMiUNMX"
+     },
+     {
+      "statement": "Kraken buy-volume share 0.816",
+      "value": "0.8162861347229761",
+      "tool_call_id": "toolu_01VPApRFRSygtWNv5nMiUNMX"
+     },
+     {
+      "statement": "Burst filled at 2406.52",
+      "value": "2406.52",
+      "tool_call_id": "toolu_01VPApRFRSygtWNv5nMiUNMX"
+     },
+     {
+      "statement": "One 11.76133817 ETH fill",
+      "value": "11.76133817",
+      "tool_call_id": "toolu_01VPApRFRSygtWNv5nMiUNMX"
+     },
+     {
+      "statement": "Many 0.002 ETH fills",
+      "value": "0.002",
+      "tool_call_id": "toolu_01VPApRFRSygtWNv5nMiUNMX"
+     },
+     {
+      "statement": "52.41 ETH resting on the best ask",
+      "value": "52.41306094",
+      "tool_call_id": "toolu_01FH1hsJwv9YDPEzzLiycfX8"
+     },
+     {
+      "statement": "Next ask level at 2406.6",
+      "value": "2406.6",
+      "tool_call_id": "toolu_01FH1hsJwv9YDPEzzLiycfX8"
+     },
+     {
+      "statement": "1.98 ETH at the next ask level",
+      "value": "1.98416571",
+      "tool_call_id": "toolu_01FH1hsJwv9YDPEzzLiycfX8"
+     },
+     {
+      "statement": "Bid-ask spread 0.04 bps",
+      "value": "0.04155386523665965",
+      "tool_call_id": "toolu_01FH1hsJwv9YDPEzzLiycfX8"
+     },
+     {
+      "statement": "Coinbase printed 99 trades",
+      "value": "99",
+      "tool_call_id": "toolu_01UwxAn1F1rtZqrWrLgitnKK"
+     },
+     {
+      "statement": "Coinbase notional about 162,890",
+      "value": "162890.427695",
+      "tool_call_id": "toolu_01UwxAn1F1rtZqrWrLgitnKK"
+     },
+     {
+      "statement": "Coinbase price range 8.48 bps",
+      "value": "8.475632556400349",
+      "tool_call_id": "toolu_01UwxAn1F1rtZqrWrLgitnKK"
+     },
+     {
+      "statement": "Coinbase buy share 0.175",
+      "value": "0.1752296845225309",
+      "tool_call_id": "toolu_01UwxAn1F1rtZqrWrLgitnKK"
+     },
+     {
+      "statement": "Cross-venue spread 0.15 bps in the 08:34:20 bucket",
+      "value": "0.15190255290170437",
+      "tool_call_id": "toolu_01NWSEahSVQhZMQ8P5byv25M"
+     },
+     {
+      "statement": "Max absolute cross-venue spread 5.10 bps over 08:31\u201308:38",
+      "value": "5.103331793761894",
+      "tool_call_id": "toolu_01NWSEahSVQhZMQ8P5byv25M"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large passive order absorbing aggressive buying: fits. The book shows 52.41 ETH on the 2406.52 ask with thin levels behind it, and the burst filled at that price.",
+     "Market-wide or news-driven burst: fits. Coinbase traded similar notional in the same seconds, the two venues stayed priced within a few bps, and both show volume bursts in neighboring buckets during a gradual decline.",
+     "Volume inflation (wash-style): not ruled out. Sell-initiated and then buy-initiated fills hit the same level within about 400 ms, with many identical 0.002 ETH fills. Public data cannot identify who traded, so this needs a wash_trade check on the evaluation stream."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 29,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 17,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": false,
+    "clarity": true,
+    "overall_pass": false,
+    "reason": "Main strength: the file checks the alert's own window, compares it with Coinbase and the cross-venue context, uses the Kraken order book, and weighs three explanations against the data. Main weakness: the investigator's own data shows dozens of identical 0.002 ETH fills and sell-then-buy prints at one price about 384 ms apart on the evaluation stream, yet the file still calls it likely benign at medium confidence instead of lowering confidence or escalating."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5490,
+    "cache_read_input_tokens": 39583,
+    "cache_creation_input_tokens": 62449,
+    "cost_usd": 0.429994
+   },
+   "latency_s": 64.08,
+   "tool_calls": [
+    {
+     "id": "toolu_01VPApRFRSygtWNv5nMiUNMX",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:34:15Z",
+      "end": "2026-10-22T08:34:40Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_01NWSEahSVQhZMQ8P5byv25M",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:31:00Z",
+      "end": "2026-10-22T08:38:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01FH1hsJwv9YDPEzzLiycfX8",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "ETH-USD",
+      "at": "2026-10-22T08:34:28.600Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    },
+    {
+     "id": "toolu_01UwxAn1F1rtZqrWrLgitnKK",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "ETH-USD",
+      "start": "2026-10-22T08:34:19Z",
+      "end": "2026-10-22T08:34:34Z",
+      "stream": "inj",
+      "limit": 20
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:kraken:BTC-USD:1792660754000",
+   "source": "real_unlabelled",
+   "label": "",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "A single aggressive buy order on Kraken bought up several displayed ask levels in one burst, and the book's depth near the touch limited the price impact; nothing suggests wash-style volume inflation.",
+    "narrative": "From 09:19:10 to 09:19:30 on Kraken BTC-USD there were 45 trades worth 206392.390129 in notional, with a buy volume share of 0.999. Nearly all of it came from one burst of buy fills at the same timestamp, 09:19:23.809758Z, which took the price from 81829.9 to 81836.6. The largest fill was 1.73622124 at 81836.6. The Kraken book at 09:19:23.5Z shows ask levels that match the fill sizes exactly, such as 0.18329766 at 81834.2 and 0.22590222 at 81836.5, plus 1.90056248 resting at 81836.6. That is how a marketable buy order fills as it works up the ask side. There is no sign of matched trades of equal size on both sides. After the burst, small sells took the price back down, and the window closed at 81819.4. Coinbase showed no matching surge: in the 09:19:20 bucket Kraken traded 2.50434668 against Coinbase's 1.02532119, and the cross-venue spread reached only -1.987 bps before returning to 0.082 bps in the next bucket. The most recent wash_trade alert for BTC-USD was at 08:43:30, and none occurred near this window. Public data carries no account identity, so self-matching cannot be ruled out, but nothing in the trades or the book points to it. Separately, a Coinbase-Kraken spread of about -52 bps between 09:16:20 and 09:17:10 falls outside this alert's window and may be worth reviewing as its own case.",
+    "claims": [
+     {
+      "statement": "45 trades in the 09:19:10-09:19:30 Kraken window",
+      "value": "45",
+      "tool_call_id": "toolu_01WVKccp2tu2qm7Ly1o6nZKD"
+     },
+     {
+      "statement": "Window notional 206392.390129",
+      "value": "206392.390129",
+      "tool_call_id": "toolu_01WVKccp2tu2qm7Ly1o6nZKD"
+     },
+     {
+      "statement": "Buy volume share 0.999",
+      "value": "0.9990676916296213",
+      "tool_call_id": "toolu_01WVKccp2tu2qm7Ly1o6nZKD"
+     },
+     {
+      "statement": "Burst started at 81829.9",
+      "value": "81829.9",
+      "tool_call_id": "toolu_01WVKccp2tu2qm7Ly1o6nZKD"
+     },
+     {
+      "statement": "Burst reached 81836.6",
+      "value": "81836.6",
+      "tool_call_id": "toolu_01WVKccp2tu2qm7Ly1o6nZKD"
+     },
+     {
+      "statement": "Largest fill 1.73622124",
+      "value": "1.73622124",
+      "tool_call_id": "toolu_01WVKccp2tu2qm7Ly1o6nZKD"
+     },
+     {
+      "statement": "Window closed at 81819.4",
+      "value": "81819.4",
+      "tool_call_id": "toolu_01WVKccp2tu2qm7Ly1o6nZKD"
+     },
+     {
+      "statement": "Book ask level 0.18329766 at 81834.2",
+      "value": "0.18329766",
+      "tool_call_id": "toolu_014bANqPsSvMLRXFUnvqKbjP"
+     },
+     {
+      "statement": "Book ask level 0.22590222 at 81836.5",
+      "value": "0.22590222",
+      "tool_call_id": "toolu_014bANqPsSvMLRXFUnvqKbjP"
+     },
+     {
+      "statement": "1.90056248 resting at 81836.6",
+      "value": "1.90056248",
+      "tool_call_id": "toolu_014bANqPsSvMLRXFUnvqKbjP"
+     },
+     {
+      "statement": "Kraken volume 2.50434668 in 09:19:20 bucket",
+      "value": "2.50434668",
+      "tool_call_id": "toolu_014N9HiGAh4CSGffqdGbh4WL"
+     },
+     {
+      "statement": "Coinbase volume 1.02532119 in 09:19:20 bucket",
+      "value": "1.02532119",
+      "tool_call_id": "toolu_014N9HiGAh4CSGffqdGbh4WL"
+     },
+     {
+      "statement": "Spread -1.987 bps in 09:19:20 bucket",
+      "value": "-1.9871171190319048",
+      "tool_call_id": "toolu_014N9HiGAh4CSGffqdGbh4WL"
+     },
+     {
+      "statement": "Spread 0.082 bps in next bucket",
+      "value": "0.0819423331629806",
+      "tool_call_id": "toolu_014N9HiGAh4CSGffqdGbh4WL"
+     },
+     {
+      "statement": "Separate spread of about -52 bps 09:16:20-09:17:10",
+      "value": "-52.359666829240446",
+      "tool_call_id": "toolu_014N9HiGAh4CSGffqdGbh4WL"
+     },
+     {
+      "statement": "Most recent wash_trade alert for BTC-USD at 08:43:30",
+      "value": "2026-10-22T08:43:30.520000Z",
+      "tool_call_id": "toolu_011w2zs6dWPGb5A27vtdaz8N"
+     }
+    ],
+    "benign_explanations_considered": [
+     "A large aggressive order taking liquidity from a deep book: this fits. The fill sizes match the displayed ask levels exactly, the burst was one-sided buying, and the price moved back afterwards.",
+     "A news-driven burst: this does not fit. The surge was limited to Kraken, Coinbase volume and the cross-venue spread stayed normal, and it was one burst rather than ongoing activity.",
+     "Wash trading: no supporting evidence. There are no equal-size buy/sell pairs in the trades, and the wash_trade detector raised no alert near the window (its latest was at 08:43:30)."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 27,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 16,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Main strength: the case file ties the burst to an order sweeping the ask side, using fill sizes that exactly match the book's displayed ask levels, and backs this with the cross-venue data and the wash_trade detector history, with medium confidence that fits the evidence. Main weakness: it misses the mirrored sizes on the bid side (0.22590222 and roughly 0.1833) and slightly overstates how quiet Coinbase was."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5056,
+    "cache_read_input_tokens": 25015,
+    "cache_creation_input_tokens": 31005,
+    "cost_usd": 0.26118
+   },
+   "latency_s": 58.27,
+   "tool_calls": [
+    {
+     "id": "toolu_01WVKccp2tu2qm7Ly1o6nZKD",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:19:10Z",
+      "end": "2026-10-22T09:19:30Z",
+      "stream": "inj",
+      "limit": 200
+     }
+    },
+    {
+     "id": "toolu_014N9HiGAh4CSGffqdGbh4WL",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T09:16:00Z",
+      "end": "2026-10-22T09:22:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_014bANqPsSvMLRXFUnvqKbjP",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T09:19:23.5Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    },
+    {
+     "id": "toolu_011w2zs6dWPGb5A27vtdaz8N",
+     "name": "similar_past_alerts",
+     "input": {
+      "detector": "wash_trade",
+      "product_id": "BTC-USD",
+      "before": "2026-10-22T09:25:00Z",
+      "stream": "inj",
+      "k": 5
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:BTC-USD:1792656639000",
+   "source": "real_unlabelled",
+   "label": "",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "A selloff on both venues reached the round 82,000 level, and on Coinbase a resting bid there absorbed a cluster of sell-initiated prints, so volume was large while price barely moved.",
+    "narrative": "From 08:10:35 to 08:11:00, Coinbase BTC-USD printed 129 trades for 19.65352749 BTC (1611602.60 notional). The buy-volume share was only 0.0927, so nearly all of the flow was sellers hitting bids. Most of the volume came at 08:10:48, when sell-initiated prints of 4.96462271, 4.2, 4.2 and 3.017446 BTC all hit exactly 82000. Price then stayed at 82000 to 82000.01 and closed the window at 82001.93. The cross-venue buckets show both venues falling together beforehand, with Coinbase VWAP at 82076.17 at 08:07:00 and 82001.51 at 08:10:10, so this was a selloff reaching a round number, not an isolated burst. Kraken was pinned at the same level. Its book at 08:10:48 showed 1.49847227 BTC bid at 82000 and a spread of 0.012 bps, and it traded only 0.01355031 BTC in the window. The Coinbase-Kraken spread stayed close throughout, with a mean of 0.107 bps and a maximum absolute value of 3.71 bps. From 08:11:15 to 08:11:50, Coinbase moved through an 11.29 bps range with a more balanced buy share of 0.411. The data show no alternating buy/sell prints of equal size, which wash-style inflation would leave behind. The pattern fits passive liquidity absorbing aggressive sells, but public data cannot identify the participants, and because this is the evaluation stream an injected pattern cannot be fully ruled out.",
+    "claims": [
+     {
+      "statement": "Coinbase printed 129 trades in the window",
+      "value": "129",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Coinbase volume in the window was 19.65352749 BTC",
+      "value": "19.65352749",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Coinbase notional in the window was 1611602.60",
+      "value": "1611602.60113",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Buy-volume share on Coinbase was 0.0927",
+      "value": "0.09268080404023187",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Sell-initiated print of 4.96462271 BTC at 82000",
+      "value": "4.96462271",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Sell-initiated prints of 4.2 BTC at 82000",
+      "value": "4.2",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Sell-initiated print of 3.017446 BTC at 82000",
+      "value": "3.017446",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Prints hit exactly 82000",
+      "value": "82000",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Price traded at 82000.01 after the cluster",
+      "value": "82000.01",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Coinbase closed the window at 82001.93",
+      "value": "82001.93",
+      "tool_call_id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X"
+     },
+     {
+      "statement": "Coinbase VWAP was 82076.17 at 08:07:00",
+      "value": "82076.168689",
+      "tool_call_id": "toolu_01RbwAsnJX2Co5uSbaak2tZ1"
+     },
+     {
+      "statement": "Coinbase VWAP was 82001.51 at 08:10:10",
+      "value": "82001.512146",
+      "tool_call_id": "toolu_01RbwAsnJX2Co5uSbaak2tZ1"
+     },
+     {
+      "statement": "Mean cross-venue spread was 0.107 bps",
+      "value": "0.1066157049252195",
+      "tool_call_id": "toolu_01RbwAsnJX2Co5uSbaak2tZ1"
+     },
+     {
+      "statement": "Maximum absolute cross-venue spread was 3.71 bps",
+      "value": "3.7071473797600505",
+      "tool_call_id": "toolu_01RbwAsnJX2Co5uSbaak2tZ1"
+     },
+     {
+      "statement": "Kraken book showed 1.49847227 BTC bid at 82000",
+      "value": "1.49847227",
+      "tool_call_id": "toolu_01PCE5KeEbZALmSMtRytPpst"
+     },
+     {
+      "statement": "Kraken spread was 0.012 bps",
+      "value": "0.012195114515174077",
+      "tool_call_id": "toolu_01PCE5KeEbZALmSMtRytPpst"
+     },
+     {
+      "statement": "Kraken traded only 0.01355031 BTC in the window",
+      "value": "0.01355031",
+      "tool_call_id": "toolu_01QxqbUEEKETLctACjPrXcSc"
+     },
+     {
+      "statement": "Coinbase price range from 08:11:15 to 08:11:50 was 11.29 bps",
+      "value": "11.28995473169414",
+      "tool_call_id": "toolu_013UAYwm5sW1eVWKEyaUPAgS"
+     },
+     {
+      "statement": "Buy share from 08:11:15 to 08:11:50 was 0.411",
+      "value": "0.4106959097791085",
+      "tool_call_id": "toolu_013UAYwm5sW1eVWKEyaUPAgS"
+     }
+    ],
+    "benign_explanations_considered": [
+     "Large passive bid absorbing aggressive sells: fits. Volume was almost entirely sell-initiated (buy share 0.0927), all at one round price (82000), and the price held. Kraken shows a matching bid at the same level.",
+     "Selloff reaching support: fits. VWAP on both venues fell together into 82000 before the burst, and trading turned two-way afterwards.",
+     "Wash-style volume inflation (the detector's concern): not supported. There are no alternating buy/sell prints of equal size, and the flow was one-sided rather than back and forth at a fixed price.",
+     "One venue lagging the other in a fast move: not a factor. The cross-venue spread stayed small, with a maximum absolute value of 3.71 bps."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 30,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 19,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Strength: it checked the alert window on both venues, the Kraken book and the periods before and after; every cited number matches the tool output, and medium confidence is justified with honest caveats about missing Coinbase book data and the evaluation stream. Weakness: the 'no equal-size alternating prints' claim is too strong (0.0091 BTC prints appear on both sides, and the trade list was cut off), and it does not address the three alerts in about 30 seconds, the two identical 4.2 BTC sells, or the second 13.7 BTC burst at 08:11:20."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 8,
+    "output_tokens": 5442,
+    "cache_read_input_tokens": 35881,
+    "cache_creation_input_tokens": 59148,
+    "cost_usd": 0.411788
+   },
+   "latency_s": 62.57,
+   "tool_calls": [
+    {
+     "id": "toolu_01R8YmQUnc3Li6tK8Tkbs49X",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:10:35Z",
+      "end": "2026-10-22T08:11:00Z",
+      "stream": "inj",
+      "limit": 300
+     }
+    },
+    {
+     "id": "toolu_01RbwAsnJX2Co5uSbaak2tZ1",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:07:00Z",
+      "end": "2026-10-22T08:14:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    },
+    {
+     "id": "toolu_01QxqbUEEKETLctACjPrXcSc",
+     "name": "query_trades",
+     "input": {
+      "venue": "kraken",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:10:35Z",
+      "end": "2026-10-22T08:11:00Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    },
+    {
+     "id": "toolu_01PCE5KeEbZALmSMtRytPpst",
+     "name": "book_snapshot",
+     "input": {
+      "product_id": "BTC-USD",
+      "at": "2026-10-22T08:10:48Z",
+      "stream": "inj",
+      "depth": 10
+     }
+    },
+    {
+     "id": "toolu_013UAYwm5sW1eVWKEyaUPAgS",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "BTC-USD",
+      "start": "2026-10-22T08:11:15Z",
+      "end": "2026-10-22T08:11:50Z",
+      "stream": "inj",
+      "limit": 40
+     }
+    }
+   ]
+  },
+  {
+   "alert_id": "volume_spike:coinbase:SOL-USD:1792659896000",
+   "source": "real_unlabelled",
+   "label": "",
+   "verdict": {
+    "classification": "likely_benign",
+    "confidence": "medium",
+    "hypothesis": "A single aggressive sell order on Coinbase SOL-USD walked down several resting bid levels, and those bids were deep enough to absorb it with minimal price impact. The volume does not look inflated.",
+    "narrative": "From 09:04:56 to 09:05:06, Coinbase SOL-USD printed 19 trades for 505.27 SOL and 52320.50 notional. Price stayed between 103.54 and 103.56, a range of 1.93 bps, and the buy volume share was 0.0, so every trade was a sell order hitting bids. Most of the volume came at one timestamp, 09:05:05.284180, where fills stepped down from 103.56 through 103.55 to 103.54. The largest fill was 103.99 SOL at 103.54. That is the trade pattern of one market sell walking down the bid levels, not two-sided trading at matched sizes. A 54.8 fill at 103.56 appears twice about 5 s apart, which fits a resting bid being refilled, but this is unconfirmed because Coinbase book data is not collected. In the same 10 s bucket Kraken traded only 20.57 SOL against Coinbase's 514.98. Across 09:03-09:07 the cross-venue spread peaked at 4.32 bps in absolute terms, so the data shows no news-driven move or dislocation. The wider 09:00-09:10 Coinbase tape was active and two-sided: 520 trades, a 0.68 buy share and a 24.1 bps range. Public data cannot identify the accounts involved, so if this window has a labelled injection on the inj stream, it should be checked against these findings.",
+    "claims": [
+     {
+      "statement": "19 trades in the alert window",
+      "value": "19",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "505.27 SOL traded in the window",
+      "value": "505.26900285",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "52320.50 notional in the window",
+      "value": "52320.496171",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "Low price 103.54",
+      "value": "103.54",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "High price 103.56",
+      "value": "103.56",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "Price range 1.93 bps",
+      "value": "1.931434089811685",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "Buy volume share 0.0",
+      "value": "0.0",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "Batch of fills at 09:05:05.284180",
+      "value": "2026-10-22T09:05:05.284180Z",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "Largest fill 103.99 SOL at 103.54",
+      "value": "103.98723986",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "Repeated 54.8 fill at 103.56",
+      "value": "54.8",
+      "tool_call_id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr"
+     },
+     {
+      "statement": "Kraken volume 20.57 SOL in the 09:05:00 bucket",
+      "value": "20.57280573",
+      "tool_call_id": "toolu_011QMAZEQNpsa8zRX5fxQ5B9"
+     },
+     {
+      "statement": "Coinbase volume 514.98 SOL in the 09:05:00 bucket",
+      "value": "514.98151735",
+      "tool_call_id": "toolu_011QMAZEQNpsa8zRX5fxQ5B9"
+     },
+     {
+      "statement": "Max absolute cross-venue spread 4.32 bps",
+      "value": "4.316409217386439",
+      "tool_call_id": "toolu_011QMAZEQNpsa8zRX5fxQ5B9"
+     },
+     {
+      "statement": "520 Coinbase trades 09:00-09:10",
+      "value": "520",
+      "tool_call_id": "toolu_01Vy3iu6u15XFaBxHgTTrPjC"
+     },
+     {
+      "statement": "Buy share 0.68 over 09:00-09:10",
+      "value": "0.6778373504346806",
+      "tool_call_id": "toolu_01Vy3iu6u15XFaBxHgTTrPjC"
+     },
+     {
+      "statement": "24.1 bps range over 09:00-09:10",
+      "value": "24.127780726728755",
+      "tool_call_id": "toolu_01Vy3iu6u15XFaBxHgTTrPjC"
+     }
+    ],
+    "benign_explanations_considered": [
+     "A large market sell walking down the bid levels: fits. All flow was sell-initiated, the fills stepped down price levels at one timestamp, and price impact was minimal.",
+     "A large resting bid absorbing sell orders: partly fits. The repeated 54.8 fill at 103.56 suggests a bid being refilled, but this can't be confirmed without Coinbase book data.",
+     "A news-driven burst: does not fit. Kraken was quiet in the same bucket and the cross-venue spread stayed tight.",
+     "Wash-style volume inflation: not supported. There was no buy-side flow and no matched back-and-forth sizes, though public data cannot rule out the same account on both sides."
+    ]
+   },
+   "grounding": {
+    "numbers_in_narrative": 29,
+    "ungrounded_numbers": [],
+    "groundedness": 1.0,
+    "claims": 16,
+    "claims_not_supported_by_cited_call": [],
+    "claim_support": 1.0
+   },
+   "judge": {
+    "evidence_use": true,
+    "alternatives": true,
+    "no_fabrication": true,
+    "calibration": true,
+    "clarity": true,
+    "overall_pass": true,
+    "reason": "Main strength: every figure matches the tool results, and the case compares the alert window against the wider Coinbase tape and against Kraken in the same bucket, with alternatives tested against data. Main weakness: the hypothesis overstates \"a single sell order\" when the fills span several timestamps, and it ignores the cluster of recurring low-impact spikes on both venues in the given history, which deserved discussion on the inj stream."
+   },
+   "usage": {
+    "requests": 2,
+    "input_tokens": 6,
+    "output_tokens": 4390,
+    "cache_read_input_tokens": 10212,
+    "cache_creation_input_tokens": 22502,
+    "cost_usd": 0.202376
+   },
+   "latency_s": 49.56,
+   "tool_calls": [
+    {
+     "id": "toolu_018DQ2rypTBLQ4qUUSz3iYzr",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:04:56Z",
+      "end": "2026-10-22T09:05:06Z",
+      "stream": "inj",
+      "limit": 100
+     }
+    },
+    {
+     "id": "toolu_01Vy3iu6u15XFaBxHgTTrPjC",
+     "name": "query_trades",
+     "input": {
+      "venue": "coinbase",
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:00:00Z",
+      "end": "2026-10-22T09:10:00Z",
+      "stream": "inj",
+      "limit": 20
+     }
+    },
+    {
+     "id": "toolu_011QMAZEQNpsa8zRX5fxQ5B9",
+     "name": "cross_venue_context",
+     "input": {
+      "product_id": "SOL-USD",
+      "start": "2026-10-22T09:03:00Z",
+      "end": "2026-10-22T09:07:00Z",
+      "stream": "inj",
+      "bucket_seconds": 10
+     }
+    }
+   ]
+  }
+ ]
+}
