@@ -243,7 +243,10 @@ services:
     cpus: 2.0 # keeps a laptop from running hot under sustained load
     profiles: [stream]
     networks: [tidemark]
-    command: taskmanager
+    # Each TaskManager process keeps RocksDB working dirs under /tmp/tm_<id>; a crash or
+    # forced restart never cleans them up. They reached 13 GB in a day of restarts and, with
+    # the host disk nearly full, the Docker VM hit write errors and froze. Clear them on start.
+    entrypoint: ["sh", "-c", "rm -rf /tmp/tm_* /tmp/flink-dist-cache-* && exec /docker-entrypoint.sh taskmanager"]
     environment: *flink-env
     volumes: *flink-volumes
     depends_on: [jobmanager]
