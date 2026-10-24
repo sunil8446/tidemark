@@ -129,8 +129,8 @@ The first run's volume-spike result (6 / 6) leaned on injector artefacts. After 
 
 | Slice | Cases | Escalated | Judge pass |
 |---|---:|---:|---:|
-| Injected volume spike | 19 | **14 (recall 0.74)** | 17 |
-| Real volume spike (unlabelled) | 6 | 0 (all `likely_benign`, medium) | 6 |
+| Injected volume spike | 19 | **14 (recall 0.74)** | 19 |
+| Real volume spike (unlabelled) | 6 | 0 (all `likely_benign`, medium) | 4 (2 failed on calibration) |
 
 Groundedness 0.997 (23 / 25 fully grounded), claim support 1.00, judge pass 0.92, 58 s p50 per case.
 
