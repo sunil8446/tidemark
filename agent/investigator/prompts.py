@@ -36,6 +36,9 @@ Evidence rules (strict):
 numbers exactly as they appear; you may round, but never compute new figures that \
 no tool returned.
 - If a tool returns an error or no data, say so; do not fill the gap.
+- Trade lists can be cut off: check `page` in query_trades results. Only describe \
+trades that were listed; if `page.truncated` is true, page on with \
+`after_trade_id` or narrow the window before describing what came later.
 - Public data cannot identify who placed an order. Never attribute intent or \
 identity; describe what the data shows.
 """

@@ -124,7 +124,7 @@ class Queries:
     # ------------------------------------------------------------------ trades
 
     def query_trades(self, venue: Venue, product_id: Product, start: str, end: str, stream: Stream,
-                     limit: int = 200) -> dict:
+                     limit: int = 200, after_trade_id: int | None = None) -> dict:
         lo, hi = window(start, end)
         limit = max(1, min(limit, MAX_TRADE_ROWS))
         ns = NAMESPACE[stream]
@@ -139,16 +139,32 @@ class Queries:
             (venue, product_id, iso(lo), iso(hi)),
         )[0]
         n, vol, notional, low, high, first, last, buy, rest, min_id, max_id = summary
+        # One row more than the page, to know whether anything follows it. Ordered by trade id
+        # (time order on both venues) so `after_trade_id` pages without gaps or repeats.
+        cursor = "AND trade_id > ?" if after_trade_id is not None else ""
+        params = (venue, product_id, iso(lo), iso(hi)) + ((int(after_trade_id),) if after_trade_id is not None else ())
         rows = self.trino.query(
             f"""SELECT trade_id, event_ts, price, size, taker_side, source
                 FROM iceberg.{ns}.raw_trades
                 WHERE venue = ? AND product_id = ?
                   AND event_ts >= from_iso8601_timestamp(?) AND event_ts < from_iso8601_timestamp(?)
-                ORDER BY event_ts, trade_id
-                LIMIT {limit}""",
-            (venue, product_id, iso(lo), iso(hi)),
+                  {cursor}
+                ORDER BY trade_id
+                LIMIT {limit + 1}""",
+            params,
         )
+        more = len(rows) > limit
+        rows = rows[:limit]
         mid = (low + high) / 2 if n else None
+        # The page goes before the trades: an investigator once described trades past a cut-off
+        # it had not noticed (the flag used to sit after hundreds of rows).
+        page = {"returned": len(rows), "trades_in_window": n, "truncated": more,
+                "listed_until": num(rows[-1][1]) if rows else None}
+        if more:
+            page["next_after_trade_id"] = rows[-1][0]
+            page["note"] = (f"Only {len(rows)} trades are listed, up to {num(rows[-1][1])}. Trades after that time "
+                            f"are NOT shown: do not describe them. Call again with after_trade_id="
+                            f"{rows[-1][0]} for the next page, or narrow the window.")
         return {
             "venue": venue, "product_id": product_id, "start": iso(lo), "end": iso(hi),
             "summary": {
@@ -162,12 +178,12 @@ class Queries:
                 "rest_backfilled_trades": rest,
                 "trade_id_span": (max_id - min_id + 1) if n else 0,
             },
+            "page": page,
             "trades": [
                 {"trade_id": r[0], "event_ts": num(r[1]), "price": num(r[2]), "size": num(r[3]),
                  "taker_side": r[4], "source": r[5]}
                 for r in rows
             ],
-            "truncated": n > len(rows),
         }
 
     def cross_venue_context(self, product_id: Product, start: str, end: str, stream: Stream,

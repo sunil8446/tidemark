@@ -97,11 +97,14 @@ def build_server(q: Queries) -> MCPServer:
 
     @server.tool(annotations=READ_ONLY)
     def query_trades(venue: Venue, product_id: Product, start: str, end: str, stream: Stream = "live",
-                     limit: int = 200) -> dict:
+                     limit: int = 200, after_trade_id: int | None = None) -> dict:
         """Trades for one venue and product in [start, end) (ISO-8601, at most 30 minutes):
-        summary statistics (count, volume, notional, VWAP, OHLC, price range in bps, buy share,
-        REST-backfilled count) and up to `limit` (max 500) trades in time order."""
-        return safe(q.query_trades, venue, product_id, start, end, stream, limit)
+        summary statistics over the whole window (count, volume, notional, VWAP, OHLC, price range
+        in bps, buy share, REST-backfilled count) and up to `limit` (max 500) trades in time order.
+        `page` says how many trades are listed and where the list stops; when `page.truncated`
+        is true, later trades are not shown: pass `after_trade_id=page.next_after_trade_id` for
+        the next page."""
+        return safe(q.query_trades, venue, product_id, start, end, stream, limit, after_trade_id)
 
     @server.tool(annotations=READ_ONLY)
     def book_snapshot(product_id: Product, at: str, stream: Stream = "live", depth: int = 10) -> dict:

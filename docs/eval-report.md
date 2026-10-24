@@ -151,7 +151,7 @@ After the size fix (independently jittered, never repeated, printed in each venu
 
 - **0.61 is the volume-spike recall to quote.** Each artefact removed lowered it; in run 3 no case file cites ids, sizes, timing or source as evidence (one mentions trade ids only as a follow-up check).
 - **Confidence is uniformly `medium`** (all 11 hits and all 7 misses). The agent no longer separates easy from hard spikes, so confidence is not useful for routing on this detector.
-- **Judge failures are mostly over-reach:** 6 of 7 fail *no_fabrication*, typically describing trades beyond what `query_trades` returned (it caps at 100 rows and the narrative went past the cut-off). Next: tell the model when a result is truncated, or page.
+- **Judge failures are mostly over-reach:** 6 of 7 fail *no_fabrication*, typically describing trades beyond what `query_trades` returned (it caps at 100 rows and the narrative went past the cut-off). Fixed (2026-10-24): `query_trades` now returns a `page` block before the rows (how many are listed, where the list stops, a plain note when it is cut off) and pages with `after_trade_id`; the system prompt tells the investigator to check it.
 - **Injector side effect, measured:** rounding sizes to the venue's precision changed wash-trade legs enough that one injection dropped below the detector threshold (17 / 20 instead of 18 / 20). Other detectors unchanged.
 
 ### Bugs this evaluation found

@@ -55,8 +55,9 @@ def test_values_are_bound_and_namespace_comes_from_whitelist():
     out = q.query_trades("kraken", "BTC-USD", "2026-10-22T10:00:00Z", "2026-10-22T10:05:00Z", "inj", limit=10_000)
     sql, params = tr.calls[1]
     assert "iceberg.market_inj.raw_trades" in sql
-    assert "LIMIT 500" in sql  # clamped
+    assert "LIMIT 501" in sql  # clamped to 500, plus one row to detect a following page
     assert params == ("kraken", "BTC-USD", "2026-10-22T10:00:00Z", "2026-10-22T10:05:00Z")
+    assert out["page"] == {"returned": 2, "trades_in_window": 2, "truncated": False, "listed_until": out["trades"][1]["event_ts"]}
     s = out["summary"]
     assert s["trades"] == 2 and s["trade_id_span"] == 2
     assert s["vwap"] == "100000"
@@ -111,3 +112,25 @@ def test_crossed_rebuild_is_flagged_not_presented_as_fact():
     book = rebuild_book(rows, depth=10, has_snapshot=True, truncated_input=False, product_id="ETH-USD", t=t)
     assert book["complete"] is False
     assert "crossed" in book["warning"]
+
+
+def test_truncated_trades_say_so_up_front_and_page_by_trade_id():
+    ts = datetime(2026, 10, 22, 10, 0, tzinfo=timezone.utc)
+    summary = [(5, Decimal("0.5"), Decimal("50000"), Decimal("100000"), Decimal("100000"),
+                Decimal("100000"), Decimal("100000"), Decimal("0.2"), 0, 10, 14)]
+    rows = [(10 + i, ts, Decimal("100000"), Decimal("0.1"), "buy", "ws") for i in range(3)]  # limit 2 + 1
+    tr = FakeTrino([summary, rows])
+    out = Queries(trino=tr, clickhouse=FakeCH([])).query_trades(
+        "kraken", "BTC-USD", "2026-10-22T10:00:00Z", "2026-10-22T10:05:00Z", "live", limit=2)
+    keys = list(out)
+    assert keys.index("page") < keys.index("trades")  # the cut-off is stated before the rows
+    assert len(out["trades"]) == 2
+    assert out["page"]["truncated"] is True and out["page"]["next_after_trade_id"] == 11
+    assert "NOT shown" in out["page"]["note"]
+    # The next page continues strictly after the cursor.
+    tr2 = FakeTrino([summary, [(12, ts, Decimal("100000"), Decimal("0.1"), "sell", "ws")]])
+    out2 = Queries(trino=tr2, clickhouse=FakeCH([])).query_trades(
+        "kraken", "BTC-USD", "2026-10-22T10:00:00Z", "2026-10-22T10:05:00Z", "live", limit=2, after_trade_id=11)
+    sql, params = tr2.calls[1]
+    assert "trade_id > ?" in sql and params[-1] == 11
+    assert out2["page"]["truncated"] is False and "note" not in out2["page"]
