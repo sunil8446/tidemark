@@ -135,9 +135,24 @@ The first run's volume-spike result (6 / 6) leaned on injector artefacts. After 
 Groundedness 0.997 (23 / 25 fully grounded), claim support 1.00, judge pass 0.92, 58 s p50 per case.
 
 - **This is the honest volume-spike number: 0.74, down from 1.00.** Most hits now rest on the injected pattern itself (two-sided prints at one fixed price while the rest of the market moves) rather than on artefacts.
-- **One artefact remains.** Synthetic sizes are drawn *with replacement* from the last 256 real sizes and all scaled by one factor, so exact sizes repeat within a burst and echo earlier real trades; 3 of 19 case files cite repeated exact sizes. Fixed in code (2026-10-24): each size is jittered independently, never equals a size already used or one the tape just printed, and is printed with the venue's formatting (Kraken pads to 8 decimals; Coinbase prints only significant decimals, where synthetic sizes had always shown 8). Not yet re-measured.
+- **One artefact remains.** Synthetic sizes are drawn *with replacement* from the last 256 real sizes and all scaled by one factor, so exact sizes repeat within a burst and echo earlier real trades; 3 of 19 case files cite repeated exact sizes. Fixed in code (2026-10-24): each size is jittered independently, never equals a size already used or one the tape just printed, and is printed with the venue's formatting (Kraken pads to 8 decimals; Coinbase prints only significant decimals, where synthetic sizes had always shown 8). Re-measured in the third run below.
 - **The misses are the known ambiguity.** All 5 read the burst as a large order absorbing aggressive flow (2 `low`, 3 `medium` confidence), the same alternative the detector evaluation could not separate without identity.
 - **Confidence is less decisive than before** (13 of 14 hits `medium`, 1 `high`; the artefact-era run had mostly `high`), which is what calibration should look like once the giveaways are gone.
+
+### Volume spike, third run: sizes fixed too (2026-10-24)
+
+After the size fix (independently jittered, never repeated, printed in each venue's format), the injected run was repeated and re-investigated: 18 injected + 6 real alerts (`evals/volume_spike_v3.jsonl`; the alert set changed because sizes, and so scores, changed).
+
+| Run | Artefacts left | Injected escalated | Real escalated | Judge pass | Groundedness |
+|---|---|---:|---:|---:|---:|
+| 1 (2026-10-23) | ids, identical sizes, 0.5 s clock, `source` | 6 / 6 (1.00) | 0 / 6 | 0.83 | 0.996 |
+| 2 (2026-10-24) | repeated exact sizes | 14 / 19 (0.74) | 0 / 6 | 0.92 | 0.997 |
+| **3 (2026-10-24)** | **none found** | **11 / 18 (0.61)** | **0 / 6** | **0.71** | **0.992** |
+
+- **0.61 is the volume-spike recall to quote.** Each artefact removed lowered it; in run 3 no case file cites ids, sizes, timing or source as evidence (one mentions trade ids only as a follow-up check).
+- **Confidence is uniformly `medium`** (all 11 hits and all 7 misses). The agent no longer separates easy from hard spikes, so confidence is not useful for routing on this detector.
+- **Judge failures are mostly over-reach:** 6 of 7 fail *no_fabrication*, typically describing trades beyond what `query_trades` returned (it caps at 100 rows and the narrative went past the cut-off). Next: tell the model when a result is truncated, or page.
+- **Injector side effect, measured:** rounding sizes to the venue's precision changed wash-trade legs enough that one injection dropped below the detector threshold (17 / 20 instead of 18 / 20). Other detectors unchanged.
 
 ### Bugs this evaluation found
 
